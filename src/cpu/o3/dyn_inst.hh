@@ -719,10 +719,10 @@ class DynInst : public ExecContext, public RefCounted
     /** @{ */
     template<typename T>
     void
-    setResult(T &&t)
+    setResult(const RegClass &reg_class, T &&t)
     {
         if (instFlags[RecordResult]) {
-            instResult.emplace(std::forward<T>(t));
+            instResult.emplace(reg_class, std::forward<T>(t));
         }
     }
     /** @} */
@@ -1148,14 +1148,15 @@ class DynInst : public ExecContext, public RefCounted
         if (reg->is(InvalidRegClass))
             return;
         cpu->setReg(reg, val);
-        setResult(val);
+        setResult(reg->regClass(), val);
     }
 
     void
     setRegOperand(const StaticInst *si, int idx, const void *val) override
     {
-        cpu->setReg(renamedDestIdx(idx), val);
-        //TODO setResult
+        const PhysRegIdPtr reg = renamedDestIdx(idx);
+        cpu->setReg(reg, val);
+        setResult(reg->regClass(), val);
     }
 };
 
