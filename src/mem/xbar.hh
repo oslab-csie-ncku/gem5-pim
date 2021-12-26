@@ -58,7 +58,11 @@
 
 namespace gem5
 {
-
+  class System;
+namespace memory
+{
+  class ScratchpadMemory;
+}
 /**
  * The base crossbar contains the common elements of the non-coherent
  * and coherent crossbar. It is an abstract class that does not have
@@ -304,6 +308,8 @@ class BaseXBar : public ClockedObject
         }
     };
 
+    const bool ideal;
+
     /**
      * Cycles of front-end pipeline including the delay to accept the request
      * and to decode the address.
@@ -403,13 +409,22 @@ class BaseXBar : public ClockedObject
     statistics::Vector2d pktCount;
     statistics::Vector2d pktSize;
 
+  private:
+    System *_pimSystem;
+    memory::ScratchpadMemory *pimSpm;
+
   public:
+
+    void init() override;
 
     virtual ~BaseXBar();
 
     /** A function used to return the port associated with this object. */
     Port &getPort(const std::string &if_name,
                   PortID idx=InvalidPortID) override;
+
+    bool pktFromPIM(PacketPtr pkt) const;
+    bool pktToPimSpm(PacketPtr pkt) const;
 
     void regStats() override;
 };

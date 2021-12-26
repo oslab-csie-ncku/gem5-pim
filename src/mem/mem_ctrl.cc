@@ -72,8 +72,10 @@ MemCtrl::MemCtrl(const MemCtrlParams &p) :
     writesThisTime(0), readsThisTime(0),
     memSchedPolicy(p.mem_sched_policy),
     frontendLatency(p.static_frontend_latency),
+    frontendLatency_pim(frontendLatency / bw_ratio),
     backendLatency(p.static_backend_latency),
-    commandWindow(p.command_window),
+    backendLatency_pim(backendLatency / bw_ratio),
+    commandWindow(p.command_window), bw_ratio(p.bw_ratio),
     nextBurstAt(0), prevArrival(0),
     nextReqTime(0),
     stats(*this)
@@ -105,6 +107,9 @@ MemCtrl::init()
     } else {
         port.sendRangeChange();
     }
+    // Get PIM system SimObject
+    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
 }
 
 void
@@ -121,6 +126,23 @@ MemCtrl::startup()
         nextBurstAt = curTick() + (dram ? dram->commandOffset() :
                                           nvm->commandOffset());
     }
+}
+
+bool
+MemCtrl::pktFromPIM(PacketPtr pkt) const
+{
+    std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+
+    return startswith(_masterName, _pimSystem->name()) ? true : false;
+}
+
+bool
+MemCtrl::MEMPacketFromPIM(MemPacket *mem_pkt) const
+{
+    std::string _masterName =
+    _pimSystem->getRequestorName(mem_pkt->requestorId());
+
+    return startswith(_masterName, _pimSystem->name()) ? true : false;
 }
 
 Tick
@@ -141,6 +163,8 @@ MemCtrl::recvAtomic(PacketPtr pkt)
             // this value is not supposed to be accurate, just enough to
             // keep things going, mimic a closed page
             latency = dram->accessLatency();
+            if (pktFromPIM(pkt))
+                latency /= bw_ratio;
         }
     } else if (nvm && nvm->getAddrRange().contains(pkt->getAddr())) {
         nvm->access(pkt);
@@ -149,6 +173,8 @@ MemCtrl::recvAtomic(PacketPtr pkt)
             // this value is not supposed to be accurate, just enough to
             // keep things going, mimic a closed page
             latency = nvm->accessLatency();
+            if (pktFromPIM(pkt))
+                latency /= bw_ratio;
         }
     } else {
         panic("Can't handle address range for packet %s\n",
@@ -296,7 +322,8 @@ MemCtrl::addToReadQueue(PacketPtr pkt, unsigned int pkt_count, bool is_dram)
 
     // If all packets are serviced by write queue, we send the repsonse back
     if (pktsServicedByWrQ == pkt_count) {
-        accessAndRespond(pkt, frontendLatency);
+        accessAndRespond(pkt, pktFromPIM(pkt) ? frontendLatency_pim :
+                         frontendLatency);
         return;
     }
 
@@ -383,7 +410,8 @@ MemCtrl::addToWriteQueue(PacketPtr pkt, unsigned int pkt_count, bool is_dram)
     // snoop the write queue for any upcoming reads
     // @todo, if a pkt size is larger than burst size, we might need a
     // different front end latency
-    accessAndRespond(pkt, frontendLatency);
+    accessAndRespond(pkt, pktFromPIM(pkt) ? frontendLatency_pim :
+                     frontendLatency);
 
     // If we are not already scheduled to get a request out of the
     // queue, do so now
@@ -521,10 +549,31 @@ MemCtrl::processRespondEvent()
             delete mem_pkt->burstHelper;
             mem_pkt->burstHelper = NULL;
         }
-    } else {
+    }
+
+    // @todo we probably want to have a different front end and back
+    // end latency for split packets
+    if (!mem_pkt->burstHelper) {
+        if (bw_ratio != 1) {
+            if (MEMPacketFromPIM(mem_pkt))
+                assert(mem_pkt->readyTime == curTick());
+            else
+                assert(mem_pkt->readyTime > curTick());
+        }
+
+        assert(mem_pkt->readyTime >= curTick());
+        Tick latency = MEMPacketFromPIM(mem_pkt) ?
+                       frontendLatency_pim + backendLatency_pim :
+                       frontendLatency + backendLatency;
+        latency += (mem_pkt->readyTime - curTick()) * bw_ratio;
+        accessAndRespond(mem_pkt->pkt, latency);
+    }
+    /* default
+    else {
         // it is not a split packet
         accessAndRespond(mem_pkt->pkt, frontendLatency + backendLatency);
     }
+    */
 
     respQueue.pop_front();
 
@@ -656,12 +705,21 @@ MemCtrl::accessAndRespond(PacketPtr pkt, Tick static_latency)
     if (needsResponse) {
         // access already turned the packet into a response
         assert(pkt->isResponse());
+
+        Tick response_latency = static_latency + pkt->headerDelay +
+                                pkt->payloadDelay;
+        if (!pktFromPIM(pkt))
+            response_latency *= bw_ratio;
+
+        if (pktFromPIM(pkt) && (pkt->headerDelay || pkt->payloadDelay))
+            std::cout << this->name() << ": header or payload delay not 0!\n";
+
         // response_time consumes the static latency and is charged also
         // with headerDelay that takes into account the delay provided by
         // the xbar and also the payloadDelay that takes into account the
         // number of data beats.
-        Tick response_time = curTick() + static_latency + pkt->headerDelay +
-                             pkt->payloadDelay;
+        Tick response_time = curTick() + response_latency;
+
         // Here we reset the timing of the packet before sending it out.
         pkt->headerDelay = pkt->payloadDelay = 0;
 
@@ -1252,7 +1310,8 @@ MemCtrl::CtrlStats::CtrlStats(MemCtrl &_ctrl)
                 statistics::units::Byte, statistics::units::Second>::get(),
              "Average system write bandwidth in Byte/s"),
 
-    ADD_STAT(totGap, statistics::units::Tick::get(), "Total gap between requests"),
+    ADD_STAT(totGap, statistics::units::Tick::get(),
+             "Total gap between requests"),
     ADD_STAT(avgGap, statistics::units::Rate<
                 statistics::units::Tick, statistics::units::Count>::get(),
              "Average gap between requests"),

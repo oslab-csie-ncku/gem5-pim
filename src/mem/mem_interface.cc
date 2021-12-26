@@ -74,6 +74,14 @@ MemInterface::MemInterface(const MemInterfaceParams &_p)
       tCK(_p.tCK), tCS(_p.tCS), tBURST(_p.tBURST),
       tRTW(_p.tRTW),
       tWTR(_p.tWTR),
+      mem_bw_ratio(_p.mem_bw_ratio),
+      tCK_pim(tCK / mem_bw_ratio), tCS_pim(tCS / mem_bw_ratio),
+      tBURST_pim(tBURST / mem_bw_ratio),
+      tRTW_pim(tRTW / mem_bw_ratio),
+      tWTR_pim(tWTR / mem_bw_ratio),
+      //tCK_pim(tCK / 8), tCS_pim(tCS / 8), tBURST_pim(tBURST / 8),
+      //tRTW_pim(tRTW / 8),
+      //tWTR_pim(tWTR / 8),
       readBufferSize(_p.read_buffer_size),
       writeBufferSize(_p.write_buffer_size)
 {}
@@ -322,15 +330,15 @@ DRAMInterface::activateBank(Rank& rank_ref, Bank& bank_ref,
     rank_ref.cmdList.push_back(Command(MemCommand::ACT, bank_ref.bank,
                                act_at));
 
-    DPRINTF(DRAMPower, "%llu,ACT,%d,%d\n", divCeil(act_at, tCK) -
+    DPRINTF(DRAMPower, "%llu,ACT,%d,%d\n", divCeil(act_at, tCK_pim) -
             timeStampOffset, bank_ref.bank, rank_ref.rank);
 
     // The next access has to respect tRAS for this bank
-    bank_ref.preAllowedAt = act_at + tRAS;
+    bank_ref.preAllowedAt = act_at + tRAS_pim;
 
     // Respect the row-to-column command delay for both read and write cmds
-    bank_ref.rdAllowedAt = std::max(act_at + tRCD, bank_ref.rdAllowedAt);
-    bank_ref.wrAllowedAt = std::max(act_at + tRCD, bank_ref.wrAllowedAt);
+    bank_ref.rdAllowedAt = std::max(act_at + tRCD_pim, bank_ref.rdAllowedAt);
+    bank_ref.wrAllowedAt = std::max(act_at + tRCD_pim, bank_ref.wrAllowedAt);
 
     // start by enforcing tRRD
     for (int i = 0; i < banksPerRank; i++) {
@@ -340,13 +348,13 @@ DRAMInterface::activateBank(Rank& rank_ref, Bank& bank_ref,
             // bank group architecture requires longer delays between
             // ACT commands within the same bank group.  Use tRRD_L
             // in this case
-            rank_ref.banks[i].actAllowedAt = std::max(act_at + tRRD_L,
+            rank_ref.banks[i].actAllowedAt = std::max(act_at + tRRD_L_pim,
                                              rank_ref.banks[i].actAllowedAt);
         } else {
             // use shorter tRRD value when either
             // 1) bank group architecture is not supportted
             // 2) bank is in a different bank group
-            rank_ref.banks[i].actAllowedAt = std::max(act_at + tRRD,
+            rank_ref.banks[i].actAllowedAt = std::max(act_at + tRRD_pim,
                                              rank_ref.banks[i].actAllowedAt);
         }
     }
@@ -356,11 +364,11 @@ DRAMInterface::activateBank(Rank& rank_ref, Bank& bank_ref,
     if (!rank_ref.actTicks.empty()) {
         // sanity check
         if (rank_ref.actTicks.back() &&
-           (act_at - rank_ref.actTicks.back()) < tXAW) {
+           (act_at - rank_ref.actTicks.back()) < tXAW_pim) {
             panic("Got %d activates in window %d (%llu - %llu) which "
                   "is smaller than %llu\n", activationLimit, act_at -
                   rank_ref.actTicks.back(), act_at,
-                  rank_ref.actTicks.back(), tXAW);
+                  rank_ref.actTicks.back(), tXAW_pim);
         }
 
         // shift the times used for the book keeping, the last element
@@ -374,14 +382,14 @@ DRAMInterface::activateBank(Rank& rank_ref, Bank& bank_ref,
         // next one (the X + 1'st activate) to be tXAW away from the
         // oldest in our window of X
         if (rank_ref.actTicks.back() &&
-           (act_at - rank_ref.actTicks.back()) < tXAW) {
+           (act_at - rank_ref.actTicks.back()) < tXAW_pim) {
             DPRINTF(DRAM, "Enforcing tXAW with X = %d, next activate "
                     "no earlier than %llu\n", activationLimit,
-                    rank_ref.actTicks.back() + tXAW);
+                    rank_ref.actTicks.back() + tXAW_pim);
             for (int j = 0; j < banksPerRank; j++)
                 // next activate must not happen before end of window
                 rank_ref.banks[j].actAllowedAt =
-                    std::max(rank_ref.actTicks.back() + tXAW,
+                    std::max(rank_ref.actTicks.back() + tXAW_pim,
                              rank_ref.banks[j].actAllowedAt);
         }
     }
@@ -424,7 +432,7 @@ DRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
         }
     }
 
-    Tick pre_done_at = pre_at + tRP;
+    Tick pre_done_at = pre_at + tRP_pim;
 
     bank.actAllowedAt = std::max(bank.actAllowedAt, pre_done_at);
 
@@ -439,7 +447,7 @@ DRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
 
         rank_ref.cmdList.push_back(Command(MemCommand::PRE, bank.bank,
                                    pre_at));
-        DPRINTF(DRAMPower, "%llu,PRE,%d,%d\n", divCeil(pre_at, tCK) -
+        DPRINTF(DRAMPower, "%llu,PRE,%d,%d\n", divCeil(pre_at, tCK_pim) -
                 timeStampOffset, bank.bank, rank_ref.rank);
     }
 
@@ -475,7 +483,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // if so, wake up from power down to issue RD/WR burst
     if (rank_ref.inLowPowerState) {
         assert(rank_ref.pwrState != PWR_SREF);
-        rank_ref.scheduleWakeUpEvent(tXP);
+        rank_ref.scheduleWakeUpEvent(tXP_pim);
     }
 
     // get the bank
@@ -515,14 +523,14 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // verify that we have command bandwidth to issue the burst
     // if not, shift to next burst window
     if (dataClockSync && ((cmd_at - rank_ref.lastBurstTick) > clkResyncDelay))
-        cmd_at = ctrl->verifyMultiCmd(cmd_at, maxCommandsPerWindow, tCK);
+        cmd_at = ctrl->verifyMultiCmd(cmd_at, maxCommandsPerWindow, tCK_pim);
     else
         cmd_at = ctrl->verifySingleCmd(cmd_at, maxCommandsPerWindow);
 
     // if we are interleaving bursts, ensure that
     // 1) we don't double interleave on next burst issue
     // 2) we are at an interleave boundary; if not, shift to next boundary
-    Tick burst_gap = tBURST_MIN;
+    Tick burst_gap = tBURST_MIN_pim;
     if (burstInterleave) {
         if (cmd_at == (rank_ref.lastBurstTick + tBURST_MIN)) {
             // already interleaving, push next command to end of full burst
@@ -538,7 +546,11 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     DPRINTF(DRAM, "Schedule RD/WR burst at tick %d\n", cmd_at);
 
     // update the packet ready time
-    mem_pkt->readyTime = cmd_at + tCL + tBURST;
+    mem_pkt->readyTime = cmd_at + tCL_pim + tBURST_pim;
+
+    // I don't agree this, so I comment it out
+    //if (mem_pkt->isWrite())
+    //    mem_pkt->readyTime += tWP_pim;
 
     rank_ref.lastBurstTick = cmd_at;
 
@@ -557,10 +569,11 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
                     // tCCD_L_WR is required for write-to-write
                     // Need to also take bus turnaround delays into account
                     dly_to_rd_cmd = mem_pkt->isRead() ?
-                                    tCCD_L : std::max(tCCD_L, wrToRdDlySameBG);
+                                    tCCD_L_pim :
+                                    std::max(tCCD_L_pim, wrToRdDlySameBG_pim);
                     dly_to_wr_cmd = mem_pkt->isRead() ?
-                                    std::max(tCCD_L, rdToWrDlySameBG) :
-                                    tCCD_L_WR;
+                                    std::max(tCCD_L_pim, rdToWrDlySameBG_pim) :
+                                    tCCD_L_WR_pim;
                 } else {
                     // tBURST is default requirement for diff BG timing
                     // Need to also take bus turnaround delays into account
@@ -568,6 +581,11 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
                                                        writeToReadDelay();
                     dly_to_wr_cmd = mem_pkt->isRead() ? readToWriteDelay() :
                                                        burst_gap;
+                    // I don't agree this, so I comment it out
+                    //if (mem_pkt->isWrite()) {
+                    //    dly_to_rd_cmd += tWP_pim;
+                    //    dly_to_wr_cmd += tWP_pim;
+                    //}
                 }
             } else {
                 // different rank is by default in a different bank group and
@@ -590,8 +608,8 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // time before a precharge, in the case of a read, respect the
     // read to precharge constraint
     bank_ref.preAllowedAt = std::max(bank_ref.preAllowedAt,
-                                 mem_pkt->isRead() ? cmd_at + tRTP :
-                                 mem_pkt->readyTime + tWR);
+                                 mem_pkt->isRead() ? cmd_at + tRTP_pim :
+                                 mem_pkt->readyTime + tWR_pim);
 
     // increment the bytes accessed and the accesses per row
     bank_ref.bytesAccessed += burstSize;
@@ -660,7 +678,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
 
     rank_ref.cmdList.push_back(Command(command, mem_pkt->bank, cmd_at));
 
-    DPRINTF(DRAMPower, "%llu,%s,%d,%d\n", divCeil(cmd_at, tCK) -
+    DPRINTF(DRAMPower, "%llu,%s,%d,%d\n", divCeil(cmd_at, tCK_pim) -
             timeStampOffset, mem_cmd, mem_pkt->bank, mem_pkt->rank);
 
     // if this access should use auto-precharge, then we are
@@ -688,7 +706,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
         // Update latency stats
         stats.totMemAccLat += mem_pkt->readyTime - mem_pkt->entryTime;
         stats.totQLat += cmd_at - mem_pkt->entryTime;
-        stats.totBusLat += tBURST;
+        stats.totBusLat += tBURST_pim;
     } else {
         // Schedule write done event to decrement event count
         // after the readyTime has been reached
@@ -740,6 +758,7 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
     : MemInterface(_p),
       bankGroupsPerRank(_p.bank_groups_per_rank),
       bankGroupArch(_p.bank_groups_per_rank > 0),
+      is_nvm(_p.is_nvm),
       tCL(_p.tCL),
       tBURST_MIN(_p.tBURST_MIN), tBURST_MAX(_p.tBURST_MAX),
       tCCD_L_WR(_p.tCCD_L_WR), tCCD_L(_p.tCCD_L), tRCD(_p.tRCD),
@@ -747,6 +766,7 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
       tRFC(_p.tRFC), tREFI(_p.tREFI), tRRD(_p.tRRD), tRRD_L(_p.tRRD_L),
       tPPD(_p.tPPD), tAAD(_p.tAAD),
       tXAW(_p.tXAW), tXP(_p.tXP), tXS(_p.tXS),
+      tWP(_p.tWP),
       clkResyncDelay(tCL + _p.tBURST_MAX),
       dataClockSync(_p.data_clock_sync),
       burstInterleave(tBURST != tBURST_MIN),
@@ -754,8 +774,45 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
       activationLimit(_p.activation_limit),
       wrToRdDlySameBG(tCL + _p.tBURST_MAX + _p.tWTR_L),
       rdToWrDlySameBG(_p.tRTW + _p.tBURST_MAX),
-      pageMgmt(_p.page_policy),
-      maxAccessesPerRow(_p.max_accesses_per_row),
+      tCL_pim(tCL / mem_bw_ratio),
+      tBURST_MIN_pim(tBURST_MIN / mem_bw_ratio),
+      tBURST_MAX_pim(tBURST_MAX / mem_bw_ratio),
+      tCCD_L_WR_pim(tCCD_L_WR / mem_bw_ratio),
+      tCCD_L_pim(tCCD_L / mem_bw_ratio),
+      tRCD_pim(tRCD / mem_bw_ratio),
+      tRP_pim(tRP / mem_bw_ratio), tRAS_pim(tRAS / mem_bw_ratio),
+      tWR_pim(tWR / mem_bw_ratio), tRTP_pim(tRTP / mem_bw_ratio),
+      tRFC_pim(tRFC / mem_bw_ratio), tREFI_pim(tREFI / mem_bw_ratio),
+      tRRD_pim(tRRD / mem_bw_ratio), tRRD_L_pim(tRRD_L / mem_bw_ratio),
+      tPPD_pim(tPPD / mem_bw_ratio), tAAD_pim(tAAD / mem_bw_ratio),
+      tXAW_pim(tXAW / mem_bw_ratio), tXP_pim(tXP / mem_bw_ratio),
+      tXS_pim(tXS / mem_bw_ratio), tWP_pim(tWP / mem_bw_ratio),
+      clkResyncDelay_pim(clkResyncDelay / mem_bw_ratio),
+      dataClockSync_pim(dataClockSync / mem_bw_ratio),
+      burstInterleave_pim(burstInterleave / mem_bw_ratio),
+      twoCycleActivate_pim(twoCycleActivate / mem_bw_ratio),
+      activationLimit_pim(activationLimit / mem_bw_ratio),
+      wrToRdDlySameBG_pim(wrToRdDlySameBG / mem_bw_ratio),
+      rdToWrDlySameBG_pim(rdToWrDlySameBG / mem_bw_ratio),
+      // tCL_pim(tCL / _p.bw_ratio), tBURST_MIN_pim(tBURST_MIN / _p.bw_ratio),
+      // tBURST_MAX_pim(tBURST_MAX / _p.bw_ratio),
+      // tCCD_L_WR_pim(tCCD_L_WR / _p.bw_ratio),
+      // tCCD_L_pim(tCCD_L / _p.bw_ratio), tRCD_pim(tRCD / _p.bw_ratio),
+      // tRP_pim(tRP / _p.bw_ratio), tRAS_pim(tRAS / _p.bw_ratio),
+      // tWR_pim(tWR / _p.bw_ratio), tRTP_pim(tRTP / _p.bw_ratio),
+      // tRFC_pim(tRFC / _p.bw_ratio), tREFI_pim(tREFI / _p.bw_ratio),
+      // tRRD_pim(tRRD / _p.bw_ratio), tRRD_L_pim(tRRD_L / _p.bw_ratio),
+      // tPPD_pim(tPPD / _p.bw_ratio), tAAD_pim(tAAD / _p.bw_ratio)
+      // tXAW_pim(tXAW / _p.bw_ratio), tXP_pim(tXP / _p.bw_ratio),
+      // tXS_pim(tXS / _p.bw_ratio), tWP_pim(tWP / _p.bw_ratio),
+      // clkResyncDelay_pim(clkResyncDelay / _p.bw_ratio),
+      // dataClockSync_pim(dataClockSync / _p.bw_ratio),
+      // burstInterleave_pim(burstInterleave / _p.bw_ratio),
+      // twoCycleActivate_pim(twoCycleActivate / _p.bw_ratio),
+      // activationLimit_pim(activationLimit / _p.bw_ratio),
+      //wrToRdDlySameBG_pim(wrToRdDlySameBG / _p.bw_ratio),
+      // rdToWrDlySameBG_pim(rdToWrDlySameBG / _p.bw_ratio),
+      pageMgmt(_p.page_policy), maxAccessesPerRow(_p.max_accesses_per_row),
       timeStampOffset(0), activeRank(0),
       enableDRAMPowerdown(_p.enable_dram_powerdown),
       lastStatsResetTick(0),
@@ -798,9 +855,15 @@ DRAMInterface::DRAMInterface(const DRAMInterfaceParams &_p)
     rowsPerBank = capacity / (rowBufferSize * banksPerRank * ranksPerChannel);
 
     // some basic sanity checks
-    if (tREFI <= tRP || tREFI <= tRFC) {
-        fatal("tREFI (%d) must be larger than tRP (%d) and tRFC (%d)\n",
-              tREFI, tRP, tRFC);
+    if (!is_nvm) {
+        if (tREFI <= tRP || tREFI <= tRFC)
+            fatal("tREFI (%d) must be larger than tRP (%d) and tRFC (%d)\n",
+                tREFI, tRP, tRFC);
+    } else {
+        if (tREFI || tRP || tRFC || tRAS || tWR || tRTP)
+            fatal("tREFI (%d), tRP (%d), tRFC (%d), tRAS (%d), tWR (%d) " \
+                  "and tRTP (%d) must be zero in NVM ctrl\n",
+                  tREFI, tRP, tRFC, tRAS, tWR, tRTP);
     }
 
     // basic bank group architecture checks ->
@@ -886,10 +949,10 @@ DRAMInterface::startup()
 {
     if (system()->isTimingMode()) {
         // timestamp offset should be in clock cycles for DRAMPower
-        timeStampOffset = divCeil(curTick(), tCK);
+        timeStampOffset = divCeil(curTick(), tCK_pim);
 
         for (auto r : ranks) {
-            r->startup(curTick() + tREFI - tRP);
+            r->startup(curTick() + tREFI_pim - tRP_pim);
         }
     }
 }
@@ -921,7 +984,7 @@ DRAMInterface::isBusy()
                     DPRINTF(DRAMState, "rank %d was in self refresh and"
                            " should wake up\n", r->rank);
                     //wake up from self-refresh
-                    r->scheduleWakeUpEvent(tXS);
+                    r->scheduleWakeUpEvent(tXS_pim);
                     // things are brought back into action once a refresh is
                     // performed after self-refresh
                     // continue with selection for other ranks
@@ -1011,7 +1074,7 @@ DRAMInterface::drainRanks()
         if (r->pwrState == PWR_SREF) {
             DPRINTF(DRAM,"Rank%d: Forcing self-refresh wakeup in drain\n",
                     r->rank);
-            r->scheduleWakeUpEvent(tXS);
+            r->scheduleWakeUpEvent(tXS_pim);
         }
     }
 }
@@ -1048,7 +1111,7 @@ DRAMInterface::minBankPrep(const MemPacketQueue& queue,
 
     // latest Tick for which ACT can occur without incurring additoinal
     // delay on the data bus
-    const Tick hidden_act_max = std::max(min_col_at - tRCD, curTick());
+    const Tick hidden_act_max = std::max(min_col_at - tRCD_pim, curTick());
 
     // Flag condition when burst can issue back-to-back with previous burst
     bool found_seamless_bank = false;
@@ -1081,13 +1144,14 @@ DRAMInterface::minBankPrep(const MemPacketQueue& queue,
                 // cost in this calculation
                 Tick act_at = ranks[i]->banks[j].openRow == Bank::NO_ROW ?
                     std::max(ranks[i]->banks[j].actAllowedAt, curTick()) :
-                    std::max(ranks[i]->banks[j].preAllowedAt, curTick()) + tRP;
+                    std::max(ranks[i]->banks[j].preAllowedAt, curTick())
+                    + tRP_pim;
 
                 // When is the earliest the R/W burst can issue?
                 const Tick col_allowed_at = ctrl->inReadBusState(false) ?
                                               ranks[i]->banks[j].rdAllowedAt :
                                               ranks[i]->banks[j].wrAllowedAt;
-                Tick col_at = std::max(col_allowed_at, act_at + tRCD);
+                Tick col_at = std::max(col_allowed_at, act_at + tRCD_pim);
 
                 // bank can issue burst back-to-back (seamlessly) with
                 // previous burst
@@ -1165,13 +1229,14 @@ DRAMInterface::Rank::Rank(const DRAMInterfaceParams &_p,
 void
 DRAMInterface::Rank::startup(Tick ref_tick)
 {
-    assert(ref_tick > curTick());
+    assert(dram.is_nvm || ref_tick > curTick());
 
     pwrStateTick = curTick();
 
     // kick off the refresh, and give ourselves enough time to
     // precharge
-    schedule(refreshEvent, ref_tick);
+    if (!dram.is_nvm)
+        schedule(refreshEvent, ref_tick);
 }
 
 void
@@ -1226,7 +1291,7 @@ DRAMInterface::Rank::flushCmdList()
          if (cmd.timeStamp <= curTick()) {
              // Move all commands at or before curTick to DRAMPower
              power.powerlib.doCommand(cmd.type, cmd.bank,
-                                      divCeil(cmd.timeStamp, dram.tCK) -
+                                      divCeil(cmd.timeStamp, dram.tCK_pim) -
                                       dram.timeStampOffset);
          } else {
              // done - found all commands at or before curTick()
@@ -1295,6 +1360,9 @@ DRAMInterface::Rank::processWriteDoneEvent()
 void
 DRAMInterface::Rank::processRefreshEvent()
 {
+    if (dram.is_nvm)
+        return;
+
     // when first preparing the refresh, remember when it was due
     if ((refreshState == REF_IDLE) || (refreshState == REF_SREF_EXIT)) {
         // remember when the refresh is due
@@ -1335,7 +1403,7 @@ DRAMInterface::Rank::processRefreshEvent()
         if (inLowPowerState) {
             DPRINTF(DRAM, "Wake Up for refresh\n");
             // save state and return after refresh completes
-            scheduleWakeUpEvent(dram.tXP);
+            scheduleWakeUpEvent(dram.tXP_pim);
             return;
         } else {
             refreshState = REF_PRE;
@@ -1362,7 +1430,7 @@ DRAMInterface::Rank::processRefreshEvent()
 
             // make sure all banks per rank are precharged, and for those that
             // already are, update their availability
-            Tick act_allowed_at = pre_at + dram.tRP;
+            Tick act_allowed_at = pre_at + dram.tRP_pim;
 
             for (auto &b : banks) {
                 if (b.openRow != Bank::NO_ROW) {
@@ -1377,7 +1445,7 @@ DRAMInterface::Rank::processRefreshEvent()
             cmdList.push_back(Command(MemCommand::PREA, 0, pre_at));
 
             DPRINTF(DRAMPower, "%llu,PREA,0,%d\n",
-                    divCeil(pre_at, dram.tCK) -
+                    divCeil(pre_at, dram.tCK_pim) -
                             dram.timeStampOffset, rank);
         } else if ((pwrState == PWR_IDLE) && (outstandingEvents == 1))  {
             // Banks are closed, have transitioned to IDLE state, and
@@ -1414,7 +1482,7 @@ DRAMInterface::Rank::processRefreshEvent()
         assert(numBanksActive == 0);
         assert(pwrState == PWR_REF);
 
-        Tick ref_done_at = curTick() + dram.tRFC;
+        Tick ref_done_at = curTick() + dram.tRFC_pim;
 
         for (auto &b : banks) {
             b.actAllowedAt = ref_done_at;
@@ -1426,8 +1494,8 @@ DRAMInterface::Rank::processRefreshEvent()
         // Update the stats
         updatePowerStats();
 
-        DPRINTF(DRAMPower, "%llu,REF,0,%d\n", divCeil(curTick(), dram.tCK) -
-                dram.timeStampOffset, rank);
+        DPRINTF(DRAMPower, "%llu,REF,0,%d\n", divCeil(curTick(), dram.tCK_pim)
+                - dram.timeStampOffset, rank);
 
         // Update for next refresh
         refreshDueAt += dram.tREFI;
@@ -1491,7 +1559,7 @@ DRAMInterface::Rank::processRefreshEvent()
         // refresh STM and therefore can always schedule next event.
         // Compensate for the delay in actually performing the refresh
         // when scheduling the next one
-        schedule(refreshEvent, refreshDueAt - dram.tRP);
+        schedule(refreshEvent, refreshDueAt - dram.tRP_pim);
 
         DPRINTF(DRAMState, "Refresh done at %llu and next refresh"
                 " at %llu\n", curTick(), refreshDueAt);
@@ -1530,7 +1598,7 @@ DRAMInterface::Rank::powerDownSleep(PowerState pwr_state, Tick tick)
         // push command to DRAMPower
         cmdList.push_back(Command(MemCommand::PDN_F_ACT, 0, tick));
         DPRINTF(DRAMPower, "%llu,PDN_F_ACT,0,%d\n", divCeil(tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
     } else if (pwr_state == PWR_PRE_PDN) {
         // if low power state is precharge low, schedule to precharge low
         // power state. In reality tCKE is needed to enter active low power.
@@ -1539,7 +1607,7 @@ DRAMInterface::Rank::powerDownSleep(PowerState pwr_state, Tick tick)
         //push Command to DRAMPower
         cmdList.push_back(Command(MemCommand::PDN_F_PRE, 0, tick));
         DPRINTF(DRAMPower, "%llu,PDN_F_PRE,0,%d\n", divCeil(tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
     } else if (pwr_state == PWR_REF) {
         // if a refresh just occurred
         // transition to PRE_PDN now that all banks are closed
@@ -1549,7 +1617,7 @@ DRAMInterface::Rank::powerDownSleep(PowerState pwr_state, Tick tick)
         //push Command to DRAMPower
         cmdList.push_back(Command(MemCommand::PDN_F_PRE, 0, tick));
         DPRINTF(DRAMPower, "%llu,PDN_F_PRE,0,%d\n", divCeil(tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
     } else if (pwr_state == PWR_SREF) {
         // should only enter SREF after PRE-PD wakeup to do a refresh
         assert(pwrStatePostRefresh == PWR_PRE_PDN);
@@ -1559,12 +1627,12 @@ DRAMInterface::Rank::powerDownSleep(PowerState pwr_state, Tick tick)
         // push Command to DRAMPower
         cmdList.push_back(Command(MemCommand::SREN, 0, tick));
         DPRINTF(DRAMPower, "%llu,SREN,0,%d\n", divCeil(tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
     }
     // Ensure that we don't power-down and back up in same tick
     // Once we commit to PD entry, do it and wait for at least 1tCK
     // This could be replaced with tCKE if/when that is added to the model
-    wakeUpAllowedAt = tick + dram.tCK;
+    wakeUpAllowedAt = tick + dram.tCK_pim;
 
     // Transitioning to a low power state, set flag
     inLowPowerState = true;
@@ -1609,16 +1677,16 @@ DRAMInterface::Rank::scheduleWakeUpEvent(Tick exit_delay)
     if (pwrStateTrans == PWR_ACT_PDN) {
         cmdList.push_back(Command(MemCommand::PUP_ACT, 0, wake_up_tick));
         DPRINTF(DRAMPower, "%llu,PUP_ACT,0,%d\n", divCeil(wake_up_tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
 
     } else if (pwrStateTrans == PWR_PRE_PDN) {
         cmdList.push_back(Command(MemCommand::PUP_PRE, 0, wake_up_tick));
         DPRINTF(DRAMPower, "%llu,PUP_PRE,0,%d\n", divCeil(wake_up_tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
     } else if (pwrStateTrans == PWR_SREF) {
         cmdList.push_back(Command(MemCommand::SREX, 0, wake_up_tick));
         DPRINTF(DRAMPower, "%llu,SREX,0,%d\n", divCeil(wake_up_tick,
-                dram.tCK) - dram.timeStampOffset, rank);
+                dram.tCK_pim) - dram.timeStampOffset, rank);
     }
 }
 
@@ -1700,7 +1768,7 @@ DRAMInterface::Rank::processPowerEvent()
             // Schedule a refresh which kicks things back into action
             // when it finishes
             refreshState = REF_SREF_EXIT;
-            schedule(refreshEvent, curTick() + dram.tXS);
+            schedule(refreshEvent, curTick() + dram.tXS_pim);
         } else {
             // if we have a pending refresh, and are now moving to
             // the idle state, directly transition to, or schedule refresh
@@ -1716,7 +1784,7 @@ DRAMInterface::Rank::processPowerEvent()
                         // exiting PRE PD, will be in IDLE until tXP expires
                         // and then should transition to PWR_REF state
                         assert(prev_state == PWR_PRE_PDN);
-                        schedulePowerEvent(PWR_REF, curTick() + dram.tXP);
+                        schedulePowerEvent(PWR_REF, curTick() + dram.tXP_pim);
                     } else if (refreshState == REF_PRE) {
                         // can directly move to PWR_REF state and proceed below
                         pwrState = PWR_REF;
@@ -1784,7 +1852,7 @@ DRAMInterface::Rank::updatePowerStats()
     // events like at refresh, stats dump as well as at simulation exit.
     // Window starts at the last time the calcWindowEnergy function was called
     // and is upto current time.
-    power.powerlib.calcWindowEnergy(divCeil(curTick(), dram.tCK) -
+    power.powerlib.calcWindowEnergy(divCeil(curTick(), dram.tCK_pim) -
                                     dram.timeStampOffset);
 
     // Get the energy from DRAMPower
@@ -1834,7 +1902,7 @@ DRAMInterface::Rank::resetStats() {
     // The only way to clear the counters in DRAMPower is to call
     // calcWindowEnergy function as that then calls clearCounters. The
     // clearCounters method itself is private.
-    power.powerlib.calcWindowEnergy(divCeil(curTick(), dram.tCK) -
+    power.powerlib.calcWindowEnergy(divCeil(curTick(), dram.tCK_pim) -
                                     dram.timeStampOffset);
 
 }
@@ -1865,7 +1933,8 @@ DRAMInterface::DRAMStats::DRAMStats(DRAMInterface &_dram)
     ADD_STAT(perBankWrBursts, statistics::units::Count::get(),
              "Per bank write bursts"),
 
-    ADD_STAT(totQLat, statistics::units::Tick::get(), "Total ticks spent queuing"),
+    ADD_STAT(totQLat, statistics::units::Tick::get(),
+             "Total ticks spent queuing"),
     ADD_STAT(totBusLat, statistics::units::Tick::get(),
              "Total ticks spent in databus transfers"),
     ADD_STAT(totMemAccLat, statistics::units::Tick::get(),
@@ -2532,7 +2601,8 @@ NVMInterface::NVMStats::NVMStats(NVMInterface &_nvm)
     ADD_STAT(perBankWrBursts, statistics::units::Count::get(),
              "Per bank write bursts"),
 
-    ADD_STAT(totQLat, statistics::units::Tick::get(), "Total ticks spent queuing"),
+    ADD_STAT(totQLat, statistics::units::Tick::get(),
+             "Total ticks spent queuing"),
     ADD_STAT(totBusLat, statistics::units::Tick::get(),
              "Total ticks spent in databus transfers"),
     ADD_STAT(totMemAccLat, statistics::units::Tick::get(),

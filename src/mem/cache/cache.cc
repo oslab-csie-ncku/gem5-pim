@@ -53,6 +53,7 @@
 #include "base/trace.hh"
 #include "base/types.hh"
 #include "debug/Cache.hh"
+#include "debug/CacheFlushRange.hh"
 #include "debug/CacheTags.hh"
 #include "debug/CacheVerbose.hh"
 #include "enums/Clusivity.hh"
@@ -1431,6 +1432,60 @@ Cache::sendMSHRQueuePacket(MSHR* mshr)
     }
 
     return BaseCache::sendMSHRQueuePacket(mshr);
+}
+
+void
+Cache::flushCacheRange(const Addr addr, const uint32_t size)
+{
+    assert(size > 0);
+    DPRINTF(CacheFlushRange, "flushing cacheline containing addr %#x-%#x\n",
+                             addr, addr + size - 1);
+
+    const Addr addr_end = addr + size - 1;
+    Addr addr_blkAlign = tags->blkAlign(addr);
+
+    while (addr_blkAlign <= addr_end) {
+        CacheBlk *blk = tags->findBlock(addr_blkAlign, true);
+        if (!blk)
+            blk = tags->findBlock(addr_blkAlign, false);
+
+        if (blk) {
+            DPRINTF(CacheFlushRange, "flushing block (%s | isSecure: %c)\n",
+                                     blk->print(),
+                                     blk->isSecure() ? 'Y' : 'N');
+
+            RequestPtr req = std::make_shared<Request>(addr_blkAlign,
+                                                       blkSize, 0,
+                                                       Request::wbRequestorId);
+            if (blk->isSecure())
+                req->setFlags(Request::SECURE);
+            req->taskId(blk->getTaskId());
+
+            PacketPtr pkt =
+                new Packet(req, MemCmd::WriteReq);
+//                new Packet(req, blk->isDirty() ? MemCmd::WritebackDirty :
+//                                                 MemCmd::WritebackClean);
+
+            if (blk->isSet(CacheBlk::WritableBit))
+                blk->clearCoherenceBits(CacheBlk::WritableBit);
+            else
+                pkt->setHasSharers();
+
+            blk->clearCoherenceBits(CacheBlk::DirtyBit);
+
+            pkt->allocate();
+            pkt->setDataFromBlock(blk->data, blkSize);
+
+            invalidateBlock(blk);
+
+            memSidePort.sendFunctional(pkt);
+
+            delete pkt;
+
+        }
+
+        addr_blkAlign += blkSize;
+    }
 }
 
 } // namespace gem5

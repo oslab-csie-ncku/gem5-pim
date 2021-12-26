@@ -48,7 +48,9 @@
 
 #include "base/trace.hh"
 #include "debug/Bridge.hh"
+#include "mem/scratchpad_mem.hh"
 #include "params/Bridge.hh"
+#include "sim/system.hh"
 
 namespace gem5
 {
@@ -80,9 +82,12 @@ Bridge::BridgeRequestPort::BridgeRequestPort(const std::string& _name,
 Bridge::Bridge(const Params &p)
     : ClockedObject(p),
       cpuSidePort(p.name + ".cpu_side_port", *this, memSidePort,
-                ticksToCycles(p.delay), p.resp_size, p.ranges),
+                  ticksToCycles(p.ideal ? 0 : p.delay),
+                  p.ideal ? (unsigned int)-1 : p.resp_size, p.ranges),
       memSidePort(p.name + ".mem_side_port", *this, cpuSidePort,
-                 ticksToCycles(p.delay), p.req_size)
+                  ticksToCycles(p.ideal ? 0 : p.delay),
+                  p.ideal ? (unsigned int)-1 : p.req_size),
+      ideal(p.ideal)
 {
 }
 
@@ -107,18 +112,51 @@ Bridge::init()
 
     // notify the request side  of our address ranges
     cpuSidePort.sendRangeChange();
+
+    // get PIM system SimObject
+    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+
+    // get PIM SPM
+    pimSpm = dynamic_cast<memory::ScratchpadMemory *>
+             (SimObject::find("pim_system.spm"));
+    fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
+}
+
+bool
+Bridge::pktFromPIM(PacketPtr pkt) const
+{
+    std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+    return startswith(_masterName, _pimSystem->name()) ? true : false;
+}
+
+bool
+Bridge::pktToPimSpm(PacketPtr pkt) const
+{
+    if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+        return true;
+    else
+        return false;
 }
 
 bool
 Bridge::BridgeResponsePort::respQueueFull() const
 {
-    return outstandingResponses == respQueueLimit;
+    bool full = outstandingResponses == respQueueLimit;
+
+    fatal_if(bridge.ideal && full, "Ideal bridge but resp queue full");
+
+    return full;
 }
 
 bool
 Bridge::BridgeRequestPort::reqQueueFull() const
 {
-    return transmitList.size() == reqQueueLimit;
+    bool full = transmitList.size() == reqQueueLimit;
+
+    fatal_if(bridge.ideal && full, "Ideal bridge but req queue full");
+
+    return full;
 }
 
 bool
@@ -152,6 +190,10 @@ Bridge::BridgeResponsePort::recvTimingReq(PacketPtr pkt)
     panic_if(pkt->cacheResponding(), "Should not see packets where cache "
              "is responding");
 
+    panic_if(bridge.name() == "pim_system.tohostbridge" &&
+             pkt->requestorId() <= 2,
+             "Should not see packets from master ID %d", pkt->requestorId());
+
     // we should not get a new request after committing to retry the
     // current one, but unfortunately the CPU violates this rule, so
     // simply ignore it for now
@@ -165,6 +207,9 @@ Bridge::BridgeResponsePort::recvTimingReq(PacketPtr pkt)
     if (memSidePort.reqQueueFull()) {
         DPRINTF(Bridge, "Request queue full\n");
         retryReq = true;
+        if (!bridge.ideal && \
+            (bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt)))
+            std::cout << bridge.name() << ": reqQ full\n";
     } else {
         // look at the response queue if we expect to see a response
         bool expects_response = pkt->needsResponse();
@@ -172,6 +217,9 @@ Bridge::BridgeResponsePort::recvTimingReq(PacketPtr pkt)
             if (respQueueFull()) {
                 DPRINTF(Bridge, "Response queue full\n");
                 retryReq = true;
+                if (!bridge.ideal && \
+                    (bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt)))
+                    std::cout << bridge.name() << ": respQ full\n";
             } else {
                 // ok to send the request with space for the response
                 DPRINTF(Bridge, "Reserving space for response\n");
@@ -216,6 +264,8 @@ Bridge::BridgeResponsePort::retryStalledReq()
 void
 Bridge::BridgeRequestPort::schedTimingReq(PacketPtr pkt, Tick when)
 {
+    if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt))
+        when = curTick();
     // If we're about to put this packet at the head of the queue, we
     // need to schedule an event to do the transmit.  Otherwise there
     // should already be an event scheduled for sending the head
@@ -233,6 +283,8 @@ Bridge::BridgeRequestPort::schedTimingReq(PacketPtr pkt, Tick when)
 void
 Bridge::BridgeResponsePort::schedTimingResp(PacketPtr pkt, Tick when)
 {
+    if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt))
+        when = curTick();
     // If we're about to put this packet at the head of the queue, we
     // need to schedule an event to do the transmit.  Otherwise there
     // should already be an event scheduled for sending the head
@@ -267,8 +319,9 @@ Bridge::BridgeRequestPort::trySendTiming()
         if (!transmitList.empty()) {
             DeferredPacket next_req = transmitList.front();
             DPRINTF(Bridge, "Scheduling next send\n");
-            bridge.schedule(sendEvent, std::max(next_req.tick,
-                                                bridge.clockEdge()));
+            bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(pkt)
+                            || bridge.pktToPimSpm(pkt) ? next_req.tick :
+                            std::max(next_req.tick, bridge.clockEdge()));
         }
 
         // if we have stalled a request due to a full request queue,
@@ -308,8 +361,10 @@ Bridge::BridgeResponsePort::trySendTiming()
         if (!transmitList.empty()) {
             DeferredPacket next_resp = transmitList.front();
             DPRINTF(Bridge, "Scheduling next send\n");
-            bridge.schedule(sendEvent, std::max(next_resp.tick,
-                                                bridge.clockEdge()));
+            bridge.schedule(sendEvent, bridge.ideal ||
+                            bridge.pktFromPIM(next_resp.pkt) ||
+                            bridge.pktToPimSpm(next_resp.pkt) ? curTick() :
+                            std::max(next_resp.tick, bridge.clockEdge()));
         }
 
         // if there is space in the request queue and we were stalling
@@ -344,12 +399,26 @@ Bridge::BridgeResponsePort::recvAtomic(PacketPtr pkt)
     panic_if(pkt->cacheResponding(), "Should not see packets where cache "
              "is responding");
 
-    return delay * bridge.clockPeriod() + memSidePort.sendAtomic(pkt);
+    panic_if(bridge.name() == "pim_system.tohostbridge" &&
+             pkt->requestorId() <= 2,
+             "Should not see packets from master ID %d", pkt->requestorId());
+
+    Tick latency;
+    if (bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt))
+        latency = 0;
+    else
+        latency = delay * bridge.clockPeriod();
+
+    return latency + memSidePort.sendAtomic(pkt);
 }
 
 void
 Bridge::BridgeResponsePort::recvFunctional(PacketPtr pkt)
 {
+    panic_if(bridge.name() == "pim_system.tohostbridge" &&
+             pkt->requestorId() <= 2,
+             "Should not see packets from master ID %d", pkt->requestorId());
+
     pkt->pushLabel(name());
 
     // check the response queue

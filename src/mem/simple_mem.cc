@@ -59,7 +59,7 @@ SimpleMemory::SimpleMemory(const SimpleMemoryParams &p) :
     dequeueEvent([this]{ dequeue(); }, name())
 {
 }
-
+/*
 void
 SimpleMemory::init()
 {
@@ -71,7 +71,7 @@ SimpleMemory::init()
         port.sendRangeChange();
     }
 }
-
+*/
 Tick
 SimpleMemory::recvAtomic(PacketPtr pkt)
 {

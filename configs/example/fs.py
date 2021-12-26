@@ -63,6 +63,8 @@ from common import ObjectList
 from common.Caches import *
 from common import Options
 
+from pim import PIM
+
 def cmd_line_template():
     if args.command_line and args.command_line_file:
         print("Error: --command-line and --command-line-file are "
@@ -302,6 +304,9 @@ Options.addFSOptions(parser)
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 
+# Add the PIM specific options
+PIM.define_options(parser)
+
 args = parser.parse_args()
 
 # system under test can be any CPU
@@ -351,6 +356,13 @@ elif len(bm) == 1:
 else:
     print("Error I don't know how to create more than 2 systems.")
     sys.exit(1)
+
+if args.pim_baremetal or args.pim_se:
+    root.pim_system = PIM.build_pim_system(args)
+    PIM.connect_to_host_system(args, test_sys, root.pim_system)
+
+    if args.pim_se:
+        root.se_mode_system_name = root.pim_system.get_name()
 
 if ObjectList.is_kvm_cpu(TestCPUClass) or \
     ObjectList.is_kvm_cpu(FutureClass):

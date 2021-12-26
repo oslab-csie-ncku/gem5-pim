@@ -58,3 +58,4 @@ class Bridge(ClockedObject):
     delay = Param.Latency('0ns', "The latency of this bridge")
     ranges = VectorParam.AddrRange([AllMemory],
                                    "Address ranges to pass through the bridge")
+    ideal = Param.Bool(False, "Ideal bridge")

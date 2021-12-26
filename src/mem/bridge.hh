@@ -57,6 +57,11 @@
 namespace gem5
 {
 
+class System;
+namespace memory
+{
+class ScratchpadMemory;
+}
 /**
  * A bridge is used to interface two different crossbars (or in general a
  * memory-mapped requestor and responder), with buffering for requests and
@@ -315,6 +320,13 @@ class Bridge : public ClockedObject
 
     /** Request port of the bridge. */
     BridgeRequestPort memSidePort;
+
+  private:
+    const bool ideal;
+    System *_pimSystem;
+    memory::ScratchpadMemory *pimSpm;
+    bool pktFromPIM(PacketPtr pkt) const;
+    bool pktToPimSpm(PacketPtr pkt) const;
 
   public:
 

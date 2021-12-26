@@ -50,17 +50,20 @@
 #include "debug/AddrRanges.hh"
 #include "debug/Drain.hh"
 #include "debug/XBar.hh"
+#include "mem/scratchpad_mem.hh"
+#include "sim/system.hh"
 
 namespace gem5
 {
 
 BaseXBar::BaseXBar(const BaseXBarParams &p)
     : ClockedObject(p),
-      frontendLatency(p.frontend_latency),
-      forwardLatency(p.forward_latency),
-      responseLatency(p.response_latency),
-      headerLatency(p.header_latency),
-      width(p.width),
+      ideal(p.ideal),
+      frontendLatency(ideal ? 0 : p.frontend_latency),
+      forwardLatency(ideal ? 0 : p.forward_latency),
+      responseLatency(ideal ? 0 : p.response_latency),
+      headerLatency(ideal ? 0 : p.header_latency),
+      width(ideal ? (uint32_t)-1 : p.width),
       gotAddrRanges(p.port_default_connection_count +
                           p.port_mem_side_ports_connection_count, false),
       gotAllAddrRanges(false), defaultPortID(InvalidPortID),
@@ -72,8 +75,7 @@ BaseXBar::BaseXBar(const BaseXBarParams &p)
                "Packet count per connected requestor and responder"),
       ADD_STAT(pktSize, statistics::units::Byte::get(),
                "Cumulative packet size per connected requestor and responder")
-{
-}
+{}
 
 BaseXBar::~BaseXBar()
 {
@@ -83,6 +85,20 @@ BaseXBar::~BaseXBar()
     for (auto port: cpuSidePorts)
         delete port;
 }
+
+void
+BaseXBar::init()
+{
+    // Get PIM system SimObject
+    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+
+    // Get PIM SPM
+    pimSpm = dynamic_cast<memory::ScratchpadMemory *>
+             (SimObject::find("pim_system.spm"));
+    fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
+}
+
 
 Port &
 BaseXBar::getPort(const std::string &if_name, PortID idx)
@@ -99,6 +115,23 @@ BaseXBar::getPort(const std::string &if_name, PortID idx)
     } else {
         return ClockedObject::getPort(if_name, idx);
     }
+}
+
+bool
+BaseXBar::pktFromPIM(PacketPtr pkt) const
+{
+    std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+
+    return startswith(_masterName, _pimSystem->name()) ? true : false;
+}
+
+bool
+BaseXBar::pktToPimSpm(PacketPtr pkt) const
+{
+    if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+        return true;
+    else
+        return false;
 }
 
 void
@@ -133,6 +166,9 @@ BaseXBar::calcPacketTiming(PacketPtr pkt, Tick header_delay)
                                            clockPeriod());
     }
 
+    if (ideal || pktFromPIM(pkt) || pktToPimSpm(pkt))
+        pkt->headerDelay = pkt->payloadDelay = 0;
+
     // the payload delay is not paying for the clock offset as that is
     // already done using the header delay, and the payload delay is
     // also used to determine how long the crossbar layer is busy and
@@ -145,7 +181,8 @@ BaseXBar::Layer<SrcType, DstType>::Layer(DstType& _port, BaseXBar& _xbar,
     statistics::Group(&_xbar, _name.c_str()),
     port(_port), xbar(_xbar), _name(xbar.name() + "." + _name), state(IDLE),
     waitingForPeer(NULL), releaseEvent([this]{ releaseLayer(); }, name()),
-    ADD_STAT(occupancy, statistics::units::Tick::get(), "Layer occupancy (ticks)"),
+    ADD_STAT(occupancy, statistics::units::Tick::get(),
+             "Layer occupancy (ticks)"),
     ADD_STAT(utilization, statistics::units::Ratio::get(), "Layer utilization")
 {
     occupancy
@@ -260,7 +297,8 @@ BaseXBar::Layer<SrcType, DstType>::releaseLayer()
         // waiting for the peer
         if (waitingForPeer == NULL)
             retryWaiting();
-    } else if (waitingForPeer == NULL && drainState() == DrainState::Draining) {
+    } else if (waitingForPeer == NULL &&
+               drainState() == DrainState::Draining) {
         DPRINTF(Drain, "Crossbar done draining, signaling drain manager\n");
         //If we weren't able to drain before, do it now.
         signalDrainDone();
@@ -298,7 +336,7 @@ BaseXBar::Layer<SrcType, DstType>::retryWaiting()
         state = BUSY;
 
         // occupy the crossbar layer until the next clock edge
-        occupyLayer(xbar.clockEdge());
+        occupyLayer(xbar.ideal ? curTick() : xbar.clockEdge());
     }
 }
 
@@ -359,7 +397,9 @@ BaseXBar::findPort(AddrRange addr_range)
           name());
 }
 
-/** Function called by the port when the crossbar is receiving a range change.*/
+/* Function called by the port when the crossbar
+ * is receiving a range change.
+ */
 void
 BaseXBar::recvRangeChange(PortID mem_side_port_id)
 {

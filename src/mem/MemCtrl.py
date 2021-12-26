@@ -65,6 +65,10 @@ class MemCtrl(QoSMemCtrl):
     # Interface to non-volatile media
     nvm = Param.NVMInterface(NULL, "NVM interface")
 
+    bw_ratio = Param.Int(1, "The ratio between internal bandwidth and " \
+                            "off-chip bandwidth, i.e., " \
+                            "bw_ratio = internal bw / off-chip bw")
+
     # read and write buffer depths are set in the interface
     # the controller will read these values when instantiated
 

@@ -94,6 +94,7 @@ class BaseXBar(ClockedObject):
     # xbar configuration.
     use_default_range = Param.Bool(False, "Perform address mapping for " \
                                        "the default port")
+    ideal = Param.Bool(False, "Ideal XBar, i.e., no delay and maximum width")
 
 class NoncoherentXBar(BaseXBar):
     type = 'NoncoherentXBar'
@@ -142,7 +143,8 @@ class SnoopFilter(SimObject):
     system = Param.System(Parent.any, "System that the crossbar belongs to.")
 
     # Sanity check on max capacity to track, adjust if needed.
-    max_capacity = Param.MemorySize('8MiB', "Maximum capacity of snoop filter")
+    max_capacity = Param.MemorySize('64MiB', \
+                                    "Maximum capacity of snoop filter")
 
 # We use a coherent crossbar to connect multiple requestors to the L2
 # caches. Normally this crossbar would be part of the cache itself.

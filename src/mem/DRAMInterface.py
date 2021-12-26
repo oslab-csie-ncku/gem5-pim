@@ -70,6 +70,9 @@ class DRAMInterface(MemInterface):
     # For power modelling we need to know if the DRAM has a DLL or not
     dll = Param.Bool(True, "DRAM has DLL or not")
 
+    # Is NVM ctrl?
+    is_nvm = Param.Bool(False, "Is NVM ctrl?")
+
     # DRAMPower provides in addition to the core power, the possibility to
     # include RD/WR termination and IO power. This calculation assumes some
     # default values. The integration of DRAMPower with gem5 does not include
@@ -157,6 +160,9 @@ class DRAMInterface(MemInterface):
 
     # Exit Powerdown to commands requiring a locked DLL
     tXPDLL = Param.Latency("0ns", "Power-up Delay with locked DLL")
+
+    # NVM write penalty
+    tWP = Param.Latency("0ns", "NVM write penalty")
 
     # time to exit self-refresh mode
     tXS = Param.Latency("0ns", "Self-refresh exit latency")
@@ -255,6 +261,10 @@ class DRAMInterface(MemInterface):
 
     # Second voltage range defined by some DRAMs
     VDD2 = Param.Voltage("0V", "2nd Voltage Range")
+
+    #bw_ratio = Param.Int(1, "The ratio between internal bandwidth and " \
+    #                        "off-chip bandwidth, i.e., " \
+    #                        "bw_ratio = internal bw / off-chip bw")
 
     def controller(self):
         """
@@ -1436,3 +1446,94 @@ class LPDDR5_6400_1x16_8B_BL32(LPDDR5_6400_1x16_BG_BL32):
     tCCD_L = "0ns"
     tRRD_L = "0ns"
     tWTR_L = "0ns"
+
+# PCM
+class PCM_LPDDR2_400_8x8(DRAMInterface):
+    # I don't agree this, so I comment it out
+    #page_policy = 'close_adaptive'
+
+    device_size = '128MB'
+
+    # 8x"8" configuration, 8 devices each with an 8-bit interface
+    device_bus_width = 8
+
+    # BL8
+    burst_length = 8
+
+    device_rowbuffer_size = '1kB'
+
+    # "8"x8 configuration, so 8 devices
+    devices_per_rank = 8
+
+    ranks_per_channel = 1
+
+    banks_per_rank = 2
+
+    # No DLL for PCM LPDDR2
+    dll = False
+
+    is_nvm = True
+
+    # 400 MHz
+    tCK = '2.5ns'
+
+    tRCD = '120ns'
+
+    # Assumes data is ready at the global sense amps after tRCD
+    tCL = '2.5ns'
+
+    # No needed
+    tRP = '0ns'
+
+    # No row restoration needed
+    tRAS = '0ns'
+
+    # No needed
+    tWR = '0ns'
+
+    # No needed
+    tRTP = '0ns'
+
+    tBURST = '10ns'
+
+    # No needed
+    tRFC = '0ns'
+
+    # No needed
+    tREFI = '0ns'
+
+    # Irrespective of speed grade, it is 7.5 ns
+    tWTR = '7.5ns'
+
+    # Default same rank rd-to-wr bus turnaround to 2 CK, @400 MHz = 5 ns
+    tRTW = '5ns'
+
+    # Default different rank bus delay to 2 CK, @400 MHz = 5 ns
+    tCS = '5ns'
+
+    # Activate to activate irrespective of density and speed grade
+    tRRD = '10ns'
+
+    tXAW = '40ns'
+    activation_limit = 4
+
+    tXP = '7.5ns'
+    tXS = '7.5ns'
+
+    # tWP = tWP00
+    tWP = '100ns'
+    #tWP00 = '100ns'
+    #tWP01 = '1050ns'
+    #tWP10 = '750ns'
+    #tWP11 = '150ns'
+
+    IDD0 = '0.46mA'
+    IDD2N = '0.08mA'
+    IDD3N = '0.08mA'
+    IDD4W = '92.32mA'
+    IDD4R = '2.25mA'
+
+    #  No refresh in default
+    IDD5 = '0mA'
+
+    VDD = '1.8V'

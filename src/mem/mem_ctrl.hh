@@ -491,6 +491,13 @@ class MemCtrl : public qos::MemCtrl
     uint32_t readsThisTime;
 
     /**
+     * We need PIM system SimObject to confirm who the requester is
+     */
+    System *_pimSystem;
+    bool pktFromPIM(PacketPtr pkt) const;
+    bool MEMPacketFromPIM(MemPacket *mem_pkt) const;
+
+    /**
      * Memory controller configuration initialized based on parameter
      * values.
      */
@@ -502,6 +509,7 @@ class MemCtrl : public qos::MemCtrl
      * the write buffer) and reads that are serviced the write buffer.
      */
     const Tick frontendLatency;
+    const Tick frontendLatency_pim;
 
     /**
      * Pipeline latency of the backend and PHY. Along with the
@@ -509,12 +517,19 @@ class MemCtrl : public qos::MemCtrl
      * by the memory.
      */
     const Tick backendLatency;
+    const Tick backendLatency_pim;
 
     /**
      * Length of a command window, used to check
      * command bandwidth
      */
     const Tick commandWindow;
+
+    /**
+     * The ratio between internal bandwidth and off-chip bandwidth, i.e.,
+     * bw_ratio = internal bw / off-chip bw
+     */
+    const int bw_ratio;
 
     /**
      * Till when must we wait before issuing next RD/WR burst?

@@ -153,6 +153,20 @@ class MemInterface : public AbstractMemory
     const Tick tRTW;
     const Tick tWTR;
 
+    /**
+     * The ratio between internal bandwidth and off-chip bandwidth, i.e.,
+     * bw_ratio = internal bw / off-chip bw
+     */
+    const int mem_bw_ratio;
+
+    /**
+     * Parameters for adjusting the bandwidth
+     */
+    GEM5_CLASS_VAR_USED const Tick tCK_pim;
+    const Tick tCS_pim;
+    const Tick tBURST_pim;
+    const Tick tRTW_pim;
+    const Tick tWTR_pim;
     /*
      * @return delay between write and read commands
      */
@@ -166,7 +180,7 @@ class MemInterface : public AbstractMemory
     /*
      * @return delay between accesses to different ranks
      */
-    Tick rankToRankDelay() const { return tBURST + tCS; }
+    Tick rankToRankDelay() const { return tBURST_pim + tCS_pim; }
 
 
   public:
@@ -262,13 +276,13 @@ class MemInterface : public AbstractMemory
      *
      * @return minimum additional bus turnaround required for read-to-write
      */
-    Tick minReadToWriteDataGap() const { return std::min(tRTW, tCS); }
+    Tick minReadToWriteDataGap() const { return std::min(tRTW_pim, tCS_pim); }
 
     /**
      *
      * @return minimum additional bus turnaround required for write-to-read
      */
-    Tick minWriteToReadDataGap() const { return std::min(tWTR, tCS); }
+    Tick minWriteToReadDataGap() const { return std::min(tWTR_pim, tCS_pim); }
 
     /**
      * Address decoder to figure out physical mapping onto ranks,
@@ -728,6 +742,11 @@ class DRAMInterface : public MemInterface
     const bool bankGroupArch;
 
     /**
+     * Used to distinct from nvm
+     */
+    const bool is_nvm;
+
+    /**
      * DRAM specific timing requirements
      */
     const Tick tCL;
@@ -749,6 +768,7 @@ class DRAMInterface : public MemInterface
     const Tick tXAW;
     const Tick tXP;
     const Tick tXS;
+    const Tick tWP;
     const Tick clkResyncDelay;
     const bool dataClockSync;
     const bool burstInterleave;
@@ -756,6 +776,37 @@ class DRAMInterface : public MemInterface
     const uint32_t activationLimit;
     const Tick wrToRdDlySameBG;
     const Tick rdToWrDlySameBG;
+
+    /**
+     * Parameters for adjusting the bandwidth
+     */
+    const Tick tCL_pim;
+    const Tick tBURST_MIN_pim;
+    const Tick tBURST_MAX_pim;
+    const Tick tCCD_L_WR_pim;
+    const Tick tCCD_L_pim;
+    const Tick tRCD_pim;
+    const Tick tRP_pim;
+    const Tick tRAS_pim;
+    const Tick tWR_pim;
+    const Tick tRTP_pim;
+    const Tick tRFC_pim;
+    const Tick tREFI_pim;
+    const Tick tRRD_pim;
+    const Tick tRRD_L_pim;
+    const Tick tPPD_pim;
+    const Tick tAAD_pim;
+    const Tick tXAW_pim;
+    const Tick tXP_pim;
+    const Tick tXS_pim;
+    const Tick tWP_pim;
+    const Tick clkResyncDelay_pim;
+    const bool dataClockSync_pim;
+    const bool burstInterleave_pim;
+    const uint8_t twoCycleActivate_pim;
+    const uint32_t activationLimit_pim;
+    const Tick wrToRdDlySameBG_pim;
+    const Tick rdToWrDlySameBG_pim;
 
 
     enums::PageManage pageMgmt;
@@ -885,7 +936,7 @@ class DRAMInterface : public MemInterface
     Tick
     burstDelay() const
     {
-        return (burstInterleave ? tBURST_MAX / 2 : tBURST);
+        return (burstInterleave ? tBURST_MAX_pim / 2 : tBURST_pim);
     }
 
   public:
@@ -1178,7 +1229,7 @@ class NVMInterface : public MemInterface
     /*
      * @return time to offset next command
      */
-    Tick commandOffset() const override { return tBURST; }
+    Tick commandOffset() const override { return tBURST_pim; }
 
     /**
      * Check if a burst operation can be issued to the NVM

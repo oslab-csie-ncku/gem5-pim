@@ -170,6 +170,11 @@ class Cache : public BaseCache
      * @return True if the port is waiting for a retry
      */
     bool sendMSHRQueuePacket(MSHR* mshr) override;
+
+    /**
+     * Flush address range [addr, addr + size) in the cache.
+     */
+    void flushCacheRange(const Addr addr, const uint32_t size);
 };
 
 } // namespace gem5

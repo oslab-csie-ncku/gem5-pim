@@ -105,3 +105,7 @@ class MemInterface(AbstractMemory):
     # 1) RD-to-RD, 2) WR-to-WR, 3) RD-to-WR, and 4) WR-to-RD
     # different rank bus delay
     tCS = Param.Latency("Rank to rank switching time")
+
+    mem_bw_ratio = Param.Int(1, "The ratio between internal bandwidth and " \
+                            "off-chip bandwidth, i.e., " \
+                            "bw_ratio = internal bw / off-chip bw")

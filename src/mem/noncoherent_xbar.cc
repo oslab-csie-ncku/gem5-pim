@@ -127,7 +127,8 @@ NoncoherentXBar::recvTimingReq(PacketPtr pkt, PortID cpu_side_port_id)
     unsigned int pkt_cmd = pkt->cmdToIndex();
 
     // store the old header delay so we can restore it if needed
-    Tick old_header_delay = pkt->headerDelay;
+    Tick old_header_delay = ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ?
+                            0 : pkt->headerDelay;
 
     // a request sees the frontend and forward latency
     Tick xbar_delay = (frontendLatency + forwardLatency) * clockPeriod();
@@ -136,7 +137,9 @@ NoncoherentXBar::recvTimingReq(PacketPtr pkt, PortID cpu_side_port_id)
     calcPacketTiming(pkt, xbar_delay);
 
     // determine how long to be crossbar layer is busy
-    Tick packetFinishTime = clockEdge(Cycles(1)) + pkt->payloadDelay;
+    Tick packetFinishTime = ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ?
+                            curTick() : clockEdge(Cycles(1)) +
+                            clockEdge(Cycles(1)) + pkt->payloadDelay;
 
     // before forwarding the packet (and possibly altering it),
     // remember if we are expecting a response
@@ -154,7 +157,11 @@ NoncoherentXBar::recvTimingReq(PacketPtr pkt, PortID cpu_side_port_id)
         pkt->headerDelay = old_header_delay;
 
         // occupy until the header is sent
-        reqLayers[mem_side_port_id]->failedTiming(src_port,
+        if (ideal || pktFromPIM(pkt) || pktToPimSpm(pkt))
+            reqLayers[mem_side_port_id]->failedTiming(src_port,
+                                                    curTick());
+        else
+            reqLayers[mem_side_port_id]->failedTiming(src_port,
                                                 clockEdge(Cycles(1)));
 
         return false;
@@ -212,11 +219,14 @@ NoncoherentXBar::recvTimingResp(PacketPtr pkt, PortID mem_side_port_id)
     calcPacketTiming(pkt, xbar_delay);
 
     // determine how long to be crossbar layer is busy
-    Tick packetFinishTime = clockEdge(Cycles(1)) + pkt->payloadDelay;
+    Tick packetFinishTime = ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ?
+                            curTick() :
+                            clockEdge(Cycles(1)) + pkt->payloadDelay;
 
     // send the packet through the destination CPU-side port, and pay for
     // any outstanding latency
-    Tick latency = pkt->headerDelay;
+    Tick latency = ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ? 0 :
+                   pkt->headerDelay;
     pkt->headerDelay = 0;
     cpuSidePorts[cpu_side_port_id]->schedTimingResp(pkt,
                                         curTick() + latency);
@@ -280,8 +290,9 @@ NoncoherentXBar::recvAtomicBackdoor(PacketPtr pkt, PortID cpu_side_port_id,
     }
 
     // @todo: Not setting first-word time
-    pkt->payloadDelay = response_latency;
-    return response_latency;
+    pkt->payloadDelay = ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ? 0 :
+                        response_latency;
+    return ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ? 0 : response_latency;
 }
 
 void

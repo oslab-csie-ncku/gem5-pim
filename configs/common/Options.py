@@ -134,6 +134,20 @@ def addNoISAOptions(parser):
 
     parser.add_argument("--memchecker", action="store_true")
 
+    parser.add_option("--dram-nvm", action="store_true",
+                      help="Enable NVM controller")
+    parser.add_option("--dram-nvm-type", type="choice", default=None,
+                      choices=ObjectList.mem_list.get_names(),
+                      help = "type of NVM memory to use")
+    parser.add_option("--dram-nvm-start", action="store",
+                      type="long", default=0,
+                      help="""Specify the starting address of the NVM in the
+                              entire physical memory""")
+    parser.add_option("--dram-nvm-size", action="store", type="string",
+                      default="512MB",
+                      help="""Specify the size of the NVM in the entire
+                              physical memory""")
+
     # Cache Options
     parser.add_argument("--external-memory-system", type=str,
                         help="use external ports of this port_type for caches")
@@ -381,7 +395,8 @@ def addCommonOptions(parser):
     # Fastforwarding and simpoint related materials
     parser.add_argument(
         "-W", "--warmup-insts", action="store", type=int, default=None,
-        help="Warmup period in total instructions (requires --standard-switch)")
+        help="""Warmup period in total instructions
+             (requires --standard-switch)""")
     parser.add_argument(
         "--bench", action="store", type=str, default=None,
         help="base names for --take-checkpoint and --checkpoint-restore")

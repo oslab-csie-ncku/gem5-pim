@@ -594,7 +594,8 @@ def run(options, root, testsys, cpu_class):
             for i in range(np):
                 if testsys.cpu[i].workload[0].simpoint == 0:
                     fatal('no simpoint for testsys.cpu[%d].workload[0]', i)
-                checkpoint_inst = int(testsys.cpu[i].workload[0].simpoint) + offset
+                checkpoint_inst = int(testsys.cpu[i].workload[0].simpoint) \
+                                  + offset
                 testsys.cpu[i].max_insts_any_thread = checkpoint_inst
                 # used for output below
                 options.take_checkpoints = checkpoint_inst
@@ -606,13 +607,27 @@ def run(options, root, testsys, cpu_class):
                 testsys.cpu[i].max_insts_any_thread = offset
 
     if options.take_simpoint_checkpoints != None:
-        simpoints, interval_length = parseSimpointAnalysisFile(options, testsys)
+        simpoints, interval_length = parseSimpointAnalysisFile(options, \
+                                                               testsys)
 
     checkpoint_dir = None
     if options.checkpoint_restore:
         cpt_starttick, checkpoint_dir = findCptDir(options, cptdir, testsys)
     root.apply_config(options.param)
     m5.instantiate(checkpoint_dir)
+
+    if hasattr(options, "pim_se") and \
+        options.pim_se and options.checkpoint_restore == None:
+        # Map SPM address range to SE PIM
+        root.pim_system.cpu.workload[0].map(
+            long(root.pim_system.spm.range.start),
+            long(root.pim_system.spm.range.start),
+            long(root.pim_system.spm.range.size()),
+            False)
+        # Map all system address range to SE PIM
+        for r in testsys.mem_ranges:
+            root.pim_system.cpu.workload[0].map(long(r.start), long(r.start),
+                                                long(r.size()), False)
 
     # Initialization is complete.  If we're not in control of simulation
     # (that is, if we're a slave simulator acting as a component in another
@@ -648,8 +663,8 @@ def run(options, root, testsys, cpu_class):
         maxtick_from_maxtime = m5.ticks.fromSeconds(options.maxtime)
         explicit_maxticks += 1
     if explicit_maxticks > 1:
-        warn("Specified multiple of --abs-max-tick, --rel-max-tick, --maxtime."\
-             " Using least")
+        warn("Specified multiple of --abs-max-tick, --rel-max-tick," \
+             " --maxtime. Using least")
     maxtick = min([maxtick_from_abs, maxtick_from_rel, maxtick_from_maxtime])
 
     if options.checkpoint_restore != None and maxtick < cpt_starttick:
