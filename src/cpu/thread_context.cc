@@ -51,6 +51,7 @@
 #include "mem/port.hh"
 #include "params/BaseCPU.hh"
 #include "sim/full_system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -260,7 +261,7 @@ takeOverFrom(ThreadContext &ntc, ThreadContext &otc)
     ntc.setContextId(otc.contextId());
     ntc.setThreadId(otc.threadId());
 
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(&ntc))
         assert(ntc.getSystemPtr() == otc.getSystemPtr());
 
     otc.setStatus(ThreadContext::Halted);

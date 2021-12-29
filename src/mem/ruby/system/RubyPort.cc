@@ -51,6 +51,7 @@
 #include "mem/simple_mem.hh"
 #include "sim/full_system.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -665,7 +666,8 @@ RubyPort::PioRequestPort::recvRangeChange()
 {
     RubyPort &r = static_cast<RubyPort &>(owner);
     r.gotAddrRanges--;
-    if (r.gotAddrRanges == 0 && FullSystem) {
+    if (r.gotAddrRanges == 0 && FullSystem &&
+        !semodesystem::belongSEsys(r.system)) {
         r.pioResponsePort.sendRangeChange();
     }
 }

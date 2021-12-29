@@ -62,6 +62,7 @@
 #include "mem/packet_access.hh"
 #include "sim/full_system.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -268,7 +269,7 @@ X86ISA::Interrupts::requestInterrupt(uint8_t vector,
             startupVector = vector;
         }
     }
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(sys))
         tc->getCpuPtr()->wakeup(0);
 }
 

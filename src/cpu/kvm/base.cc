@@ -55,6 +55,7 @@
 #include "params/BaseKvmCPU.hh"
 #include "sim/process.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 /* Used by some KVM macros */
 #define PAGE_SIZE pageSize
@@ -85,7 +86,7 @@ BaseKvmCPU::BaseKvmCPU(const BaseKvmCPUParams &params)
         panic("KVM: Failed to determine host page size (%i)\n",
               errno);
 
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(this))
         thread = new SimpleThread(this, 0, params.system, params.mmu,
                                   params.isa[0]);
     else

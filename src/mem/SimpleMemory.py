@@ -41,7 +41,6 @@ from m5.objects.AbstractMemory import *
 
 class SimpleMemory(AbstractMemory):
     type = 'SimpleMemory'
-    abstract = True
     cxx_header = "mem/simple_mem.hh"
     cxx_class = 'gem5::memory::SimpleMemory'
 

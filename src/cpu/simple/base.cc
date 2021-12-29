@@ -76,6 +76,7 @@
 #include "sim/sim_object.hh"
 #include "sim/stats.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -91,7 +92,7 @@ BaseSimpleCPU::BaseSimpleCPU(const BaseSimpleCPUParams &p)
     SimpleThread *thread;
 
     for (unsigned i = 0; i < numThreads; i++) {
-        if (FullSystem) {
+        if (FullSystem && !semodesystem::belongSEsys(this)) {
             thread = new SimpleThread(
                 this, i, p.system, p.mmu, p.isa[i]);
         } else {
@@ -453,7 +454,7 @@ BaseSimpleCPU::postExecute()
 
     t_info.execContextStats.statExecutedInstType[curStaticInst->opClass()]++;
 
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(this))
         traceFunctions(instAddr);
 
     if (traceData) {

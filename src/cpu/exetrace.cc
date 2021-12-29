@@ -51,6 +51,7 @@
 #include "debug/ExecAll.hh"
 #include "debug/FmtTicksOff.hh"
 #include "enums/OpClass.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -79,9 +80,10 @@ Trace::ExeTracerRecord::traceInst(const StaticInstPtr &inst, bool ran)
     Addr cur_pc = pc.instAddr();
     loader::SymbolTable::const_iterator it;
     ccprintf(outs, "%#x", cur_pc);
-    if (debug::ExecSymbol && (!FullSystem || !in_user_mode) &&
-            (it = loader::debugSymbolTable.findNearest(cur_pc)) !=
-                loader::debugSymbolTable.end()) {
+    if (debug::ExecSymbol && ((!FullSystem || semodesystem::belongSEsys(thread)) ||
+        !in_user_mode) &&
+        (it = loader::debugSymbolTable.findNearest(cur_pc)) !=
+        loader::debugSymbolTable.end()) {
         Addr delta = cur_pc - it->address;
         if (delta)
             ccprintf(outs, " @%s+%d", it->name, delta);

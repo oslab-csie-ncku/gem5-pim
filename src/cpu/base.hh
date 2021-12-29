@@ -61,9 +61,12 @@
 #include "sim/probe/probe.hh"
 #include "sim/system.hh"
 #include "debug/Mwait.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
+
+//using namespace semodesystem;
 
 class BaseCPU;
 struct BaseCPUParams;
@@ -255,7 +258,9 @@ class BaseCPU : public ClockedObject
     bool
     checkInterrupts(ThreadID tid) const
     {
-        return FullSystem && interrupts[tid]->checkInterrupts();
+        //return FullSystem && interrupts[tid]->checkInterrupts();
+        return FullSystem && !semodesystem::belongSEsys(this) &&
+               interrupts[tid]->checkInterrupts();
     }
 
   protected:

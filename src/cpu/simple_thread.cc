@@ -57,6 +57,7 @@
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
 #include "sim/process.hh"
+#include "sim/se_mode_system.hh"
 #include "sim/serialize.hh"
 #include "sim/sim_exit.hh"
 #include "sim/system.hh"
@@ -70,7 +71,7 @@ SimpleThread::SimpleThread(BaseCPU *_cpu, int _thread_num, System *_sys,
                            BaseISA *_isa)
     : ThreadState(_cpu, _thread_num, _process),
       isa(dynamic_cast<TheISA::ISA *>(_isa)),
-      predicate(true), memAccPredicate(true),
+      predicate(false), memAccPredicate(true),
       comInstEventQueue("instruction-based event queue"),
       system(_sys), mmu(_mmu), decoder(isa),
       htmTransactionStarts(0), htmTransactionStops(0)
@@ -82,13 +83,24 @@ SimpleThread::SimpleThread(BaseCPU *_cpu, int _thread_num, System *_sys,
     vecRegs.resize(regClasses.at(VecRegClass).size());
     vecPredRegs.resize(regClasses.at(VecPredRegClass).size());
     ccRegs.resize(regClasses.at(CCRegClass).size());
+#if THE_ISA == X86_ISA
+    uint32_t _FSVal = (FullSystem && !semodesystem::belongSEsys(system)) ?
+                      FullSystemInt : 0;
+    decoder.setFullSystemVal(_FSVal);
+#endif
     clearArchRegs();
 }
 
 SimpleThread::SimpleThread(BaseCPU *_cpu, int _thread_num, System *_sys,
                            BaseMMU *_mmu, BaseISA *_isa)
     : SimpleThread(_cpu, _thread_num, _sys, nullptr, _mmu, _isa)
-{}
+{
+#if THE_ISA == X86_ISA
+    uint32_t _FSVal = (FullSystem && !semodesystem::belongSEsys(system)) ?
+                      FullSystemInt : 0;
+    decoder.setFullSystemVal(_FSVal);
+#endif
+}
 
 void
 SimpleThread::takeOverFrom(ThreadContext *oldContext)

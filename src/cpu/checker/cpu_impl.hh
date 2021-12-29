@@ -58,6 +58,7 @@
 #include "sim/full_system.hh"
 #include "sim/sim_object.hh"
 #include "sim/stats.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -383,7 +384,7 @@ Checker<DynInstPtr>::verify(const DynInstPtr &completed_inst)
 
         // Take any faults here
         if (fault != NoFault) {
-            if (FullSystem) {
+            if (FullSystem && !semodesystem::belongSEsys(this)) {
                 fault->invoke(tc, curStaticInst);
                 willChangePC = true;
                 newPCState = thread->pcState();
@@ -394,7 +395,7 @@ Checker<DynInstPtr>::verify(const DynInstPtr &completed_inst)
            advancePC(fault);
         }
 
-        if (FullSystem) {
+        if (FullSystem && !semodesystem::belongSEsys(this)) {
             // @todo: Determine if these should happen only if the
             // instruction hasn't faulted.  In the SimpleCPU case this may
             // not be true, but in the O3 case this may be true.

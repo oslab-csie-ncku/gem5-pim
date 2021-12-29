@@ -36,6 +36,7 @@
  */
 
 #include "cpu/simple/noncaching.hh"
+#include "sim/se_mode_system.hh"
 
 #include <cassert>
 
@@ -46,8 +47,8 @@ NonCachingSimpleCPU::NonCachingSimpleCPU(const NonCachingSimpleCPUParams &p)
     : AtomicSimpleCPU(p)
 {
     assert(p.numThreads == 1);
-    fatal_if(!FullSystem && p.workload.size() != 1,
-             "only one workload allowed");
+    fatal_if((!FullSystem || semodesystem::belongSEsys(this)) && 
+             p.workload.size() != 1, "only one workload allowed");
 }
 
 void

@@ -54,6 +54,7 @@
 #include "debug/MinorMem.hh"
 #include "debug/MinorTrace.hh"
 #include "debug/PCEvent.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -1624,7 +1625,8 @@ Execute::checkInterrupts(BranchData& branch, bool& interrupted)
          *  straighaway so this is different from took_interrupt */
         bool thread_interrupted = false;
 
-        if (FullSystem && cpu.getInterruptController(tid)) {
+        if (FullSystem && !semodesystem::belongSEsys(&cpu) &&
+            cpu.getInterruptController(tid)) {
             /* This is here because it seems that after drainResume the
              * interrupt controller isn't always set */
             thread_interrupted = executeInfo[tid].drainState == NotDraining &&
@@ -1652,7 +1654,8 @@ Execute::checkInterrupts(BranchData& branch, bool& interrupted)
 bool
 Execute::hasInterrupt(ThreadID thread_id)
 {
-    if (FullSystem && cpu.getInterruptController(thread_id)) {
+    if (FullSystem && !semodesystem::belongSEsys(&cpu) &&
+        cpu.getInterruptController(thread_id)) {
         return executeInfo[thread_id].drainState == NotDraining &&
                isInterrupted(thread_id);
     }

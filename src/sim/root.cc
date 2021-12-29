@@ -49,11 +49,17 @@
 #include "sim/eventq.hh"
 #include "sim/full_system.hh"
 #include "sim/root.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
 
 Root *Root::_root = NULL;
+
+namespace semodesystem {
+std::string SEModeSystemName = "";
+};
+
 Root::RootStats Root::RootStats::instance;
 Root::RootStats &rootStats = Root::RootStats::instance;
 
@@ -206,6 +212,7 @@ void
 Root::serialize(CheckpointOut &cp) const
 {
     SERIALIZE_SCALAR(FullSystem);
+    SERIALIZE_SCALAR(semodesystem::SEModeSystemName);
     std::string isa = THE_ISA_STR;
     SERIALIZE_SCALAR(isa);
 
@@ -234,6 +241,14 @@ RootParams::create() const
 
     FullSystem = full_system;
     FullSystemInt = full_system ? 1 : 0;
+    
+    if (FullSystem) {
+        semodesystem::SEModeSystemName = se_mode_system_name;
+    } else {
+        if (se_mode_system_name != "")
+            warn("Since the simulation is in pure SE mode, " \
+                 "se_mode_system_name variable will be ignored");
+    }
 
     return new Root(*this, 0);
 }

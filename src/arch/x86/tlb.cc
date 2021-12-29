@@ -56,6 +56,7 @@
 #include "sim/full_system.hh"
 #include "sim/process.hh"
 #include "sim/pseudo_inst.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -277,7 +278,7 @@ TLB::finalizePhysical(const RequestPtr &req,
                 return Cycles(1);
             }
         );
-    } else if (FullSystem) {
+    } else if (FullSystem && !semodesystem::belongSEsys(tc)) {
         // Check for an access to the local APIC
         LocalApicBase localApicBase =
             tc->readMiscRegNoEffect(MISCREG_APIC_BASE);
@@ -389,7 +390,7 @@ TLB::translate(const RequestPtr &req,
                 } else {
                     stats.wrMisses++;
                 }
-                if (FullSystem) {
+                if (FullSystem && !semodesystem::belongSEsys(tc)) {
                     Fault fault = walker->start(tc, translation, req, mode);
                     if (timing || fault != NoFault) {
                         // This gets ignored in atomic mode.
@@ -477,7 +478,7 @@ TLB::translateFunctional(const RequestPtr &req, ThreadContext *tc,
     const Addr vaddr = req->getVaddr();
     Addr addr = vaddr;
     Addr paddr = 0;
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(tc)) {
         Fault fault = walker->startFunctional(tc, addr, logBytes, mode);
         if (fault != NoFault)
             return fault;

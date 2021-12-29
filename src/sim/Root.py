@@ -69,6 +69,12 @@ class Root(SimObject):
 
     full_system = Param.Bool("if this is a full system simulation")
 
+    se_mode_system_name = Param.String("",
+                                       "In full system simulation, if you " \
+                                       "want to have a SE mode system at " \
+                                       "the same time, you need to specify " \
+                                       "the SE mode system name")
+
     # Time syncing prevents the simulation from running faster than real time.
     time_sync_enable = Param.Bool(False, "whether time syncing is enabled")
     time_sync_period = Param.Clock("100ms", "how often to sync with real time")

@@ -69,6 +69,7 @@
 #include "sim/eventq.hh"
 #include "sim/full_system.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -138,6 +139,11 @@ Fetch::Fetch(CPU *_cpu, const O3CPUParams &params)
     for (ThreadID tid = 0; tid < numThreads; tid++) {
         decoder[tid] = new TheISA::Decoder(
                 dynamic_cast<TheISA::ISA *>(params.isa[tid]));
+#if THE_ISA == X86_ISA
+        uint32_t _FSVal = (FullSystem && !semodesystem::belongSEsys(cpu)) ?
+                          FullSystemInt : 0;
+        decoder[tid]->setFullSystemVal(_FSVal);
+#endif
         // Create space to buffer the cache line data,
         // which may not hold the entire cache line.
         fetchBuffer[tid] = new uint8_t[fetchBufferSize];
@@ -860,7 +866,7 @@ Fetch::tick()
 
     DPRINTF(Fetch, "Running stage.\n");
 
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(cpu)) {
         if (fromCommit->commitInfo[0].interruptPending) {
             interruptPending = true;
         }

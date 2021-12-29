@@ -59,6 +59,7 @@
 #include "mem/request.hh"
 #include "sim/process.hh"
 #include "sim/pseudo_inst.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -509,7 +510,7 @@ namespace X86ISA
                         latency = missLatency1;
                     }
 
-                    if (FullSystem) {
+                    if (FullSystem && !SEMdoeSystem::belongSEsys(tc)) {
                         fatal("GpuTLB doesn't support full-system mode\n");
                     } else {
                         DPRINTF(GPUTLB, "Handling a TLB miss for address %#x "
@@ -602,7 +603,7 @@ namespace X86ISA
         }
 
         // Check for an access to the local APIC
-        if (FullSystem) {
+        if (FullSystem && !SEMdoeSystem::belongSEsys(tc)) {
             LocalApicBase localApicBase =
                 tc->readMiscRegNoEffect(MISCREG_APIC_BASE);
 

@@ -37,6 +37,7 @@
 #include "sim/full_system.hh"
 #include "sim/serialize.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -76,7 +77,7 @@ ThreadState::initMemProxies(ThreadContext *tc)
     // connected, i.e. when restoring from a checkpoint and later
     // switching the CPU in.
     assert(virtProxy == NULL);
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(baseCpu)) {
         virtProxy = new TranslatingPortProxy(tc);
     } else {
         virtProxy = new SETranslatingPortProxy(

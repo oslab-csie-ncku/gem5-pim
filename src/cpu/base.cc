@@ -67,6 +67,7 @@
 #include "sim/sim_events.hh"
 #include "sim/sim_exit.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 // Hack
 #include "sim/stat_control.hh"
@@ -197,7 +198,8 @@ BaseCPU::postInterrupt(ThreadID tid, int int_num, int index)
     // Only wake up syscall emulation if it is not waiting on a futex.
     // This is to model the fact that instructions such as ARM SEV
     // should wake up a WFE sleep, but not a futex syscall WAIT. */
-    if (FullSystem || !system->futexMap.is_waiting(threadContexts[tid]))
+    if ((FullSystem && !semodesystem::belongSEsys(this)) ||
+        !system->futexMap.is_waiting(threadContexts[tid]))
         wakeup(tid);
 }
 
@@ -440,7 +442,7 @@ BaseCPU::registerThreadContexts()
             system->registerThreadContext(tc, _cpuId);
         }
 
-        if (!FullSystem)
+        if (!FullSystem || semodesystem::belongSEsys(this))
             tc->getProcessPtr()->assignThreadContext(tc->contextId());
 
         interrupts[tid]->setThreadContext(tc);

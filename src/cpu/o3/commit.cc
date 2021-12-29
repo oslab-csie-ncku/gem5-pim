@@ -67,6 +67,7 @@
 #include "params/O3CPU.hh"
 #include "sim/faults.hh"
 #include "sim/full_system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -783,7 +784,7 @@ Commit::propagateInterrupt()
 void
 Commit::commit()
 {
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(cpu)) {
         // Check if we have a interrupt and get read to handle it
         if (cpu->checkInterrupts(0))
             propagateInterrupt();

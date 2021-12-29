@@ -44,6 +44,7 @@
 #include "cpu/decode_cache.hh"
 #include "cpu/static_inst.hh"
 #include "debug/Decoder.hh"
+#include "sim/full_system.hh"
 
 namespace gem5
 {
@@ -54,6 +55,15 @@ namespace X86ISA
 class ISA;
 class Decoder : public InstDecoder
 {
+  private:
+    uint32_t FullSystemVal;
+
+  public:
+    void setFullSystemVal(const uint32_t val)
+    {
+        FullSystemVal = val;
+    }
+
   private:
     // These are defined and documented in decoder_tables.cc
     static const uint8_t SizeTypeToSize[3][10];
@@ -245,7 +255,8 @@ class Decoder : public InstDecoder
     decode_cache::InstMap<ExtMachInst> *instMap = nullptr;
     typedef std::unordered_map<
             CacheKey, decode_cache::InstMap<ExtMachInst> *> InstCacheMap;
-    static InstCacheMap instCacheMap;
+    static InstCacheMap instCacheMap_FS;
+    static InstCacheMap instCacheMap_SE;
 
     StaticInstPtr decodeInst(ExtMachInst mach_inst);
 
@@ -254,8 +265,21 @@ class Decoder : public InstDecoder
     /// @retval A pointer to the corresponding StaticInst object.
     StaticInstPtr decode(ExtMachInst mach_inst, Addr addr);
 
+  private:
+    void setInstMap(InstCacheMap &_instCacheMap, HandyM5Reg _m5Reg)
+    {
+        InstCacheMap::iterator imIter = _instCacheMap.find(_m5Reg);
+        if (imIter != _instCacheMap.end()) {
+            instMap = imIter->second;
+        } else {
+            instMap = new DecodeCache::InstMap<ExtMachInst>;
+            _instCacheMap[_m5Reg] = instMap;
+        }
+    }
+
   public:
-    Decoder(ISA *isa=nullptr) : InstDecoder(&fetchChunk)
+    Decoder(ISA *isa=nullptr) : InstDecoder(&fetchChunk),
+        FullSystemVal((uint32_t)-1)
     {
         emi.reset();
         emi.mode.mode = mode;
@@ -265,6 +289,9 @@ class Decoder : public InstDecoder
     void
     setM5Reg(HandyM5Reg m5Reg)
     {
+        fatal_if(FullSystemVal != FullSystemInt && FullSystemVal != 0,
+                 "FullSystemVal without valid value");
+
         mode = (X86Mode)(uint64_t)m5Reg.mode;
         submode = (X86SubMode)(uint64_t)m5Reg.submode;
         emi.mode.mode = mode;
@@ -283,12 +310,10 @@ class Decoder : public InstDecoder
             addrCacheMap[m5Reg] = decodePages;
         }
 
-        InstCacheMap::iterator imIter = instCacheMap.find(m5Reg);
-        if (imIter != instCacheMap.end()) {
-            instMap = imIter->second;
+        if (FullSystemInt == 0 || FullSystemVal == 0) {
+            setInstMap(instCacheMap_SE, m5Reg);
         } else {
-            instMap = new decode_cache::InstMap<ExtMachInst>;
-            instCacheMap[m5Reg] = instMap;
+            setInstMap(instCacheMap_FS, m5Reg);
         }
     }
 

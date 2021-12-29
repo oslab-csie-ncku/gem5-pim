@@ -68,6 +68,7 @@
 #include "sim/debug.hh"
 #include "sim/full_system.hh"
 #include "sim/redirect_path.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -228,7 +229,7 @@ System::System(const Params &p)
     }
 #endif
 
-    if (!FullSystem) {
+    if ((!FullSystem || semodesystem::belongSEsys(this))) {
         AddrRangeList memories = physmem.getConfAddrRanges();
         assert(!memories.empty());
         for (const auto &mem : memories) {
@@ -354,21 +355,21 @@ System::validKvmEnvironment() const
 Addr
 System::allocPhysPages(int npages, int poolID)
 {
-    assert(!FullSystem);
+    assert((!FullSystem || semodesystem::belongSEsys(this)));
     return memPools[poolID].allocate(npages);
 }
 
 Addr
 System::memSize(int poolID) const
 {
-    assert(!FullSystem);
+    assert((!FullSystem || semodesystem::belongSEsys(this)));
     return memPools[poolID].totalBytes();
 }
 
 Addr
 System::freeMemSize(int poolID) const
 {
-    assert(!FullSystem);
+    assert((!FullSystem || semodesystem::belongSEsys(this)));
     return memPools[poolID].freeBytes();
 }
 

@@ -51,6 +51,7 @@
 #include "cpu/utils.hh"
 #include "params/CheckerCPU.hh"
 #include "sim/full_system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -100,7 +101,7 @@ CheckerCPU::setSystem(System *system)
 
     systemPtr = system;
 
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(this)) {
         thread = new SimpleThread(this, 0, systemPtr, mmu, p.isa[0]);
     } else {
         thread = new SimpleThread(this, 0, systemPtr,

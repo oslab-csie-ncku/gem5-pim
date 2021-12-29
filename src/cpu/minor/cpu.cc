@@ -43,6 +43,7 @@
 #include "debug/Drain.hh"
 #include "debug/MinorCPU.hh"
 #include "debug/Quiesce.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -56,7 +57,7 @@ MinorCPU::MinorCPU(const MinorCPUParams &params) :
     minor::MinorThread *thread;
 
     for (ThreadID i = 0; i < numThreads; i++) {
-        if (FullSystem) {
+        if (FullSystem && !semodesystem::belongSEsys(this)) {
             thread = new minor::MinorThread(this, i, params.system,
                     params.mmu, params.isa[i]);
             thread->setStatus(ThreadContext::Halted);
