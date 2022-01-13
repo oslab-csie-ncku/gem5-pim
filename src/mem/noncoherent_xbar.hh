@@ -123,6 +123,7 @@ class NoncoherentXBar : public BaseXBar
         void
         recvFunctional(PacketPtr pkt) override
         {
+            //std::cout << "id: " << id << std::endl;
             xbar.recvFunctional(pkt, id);
         }
 

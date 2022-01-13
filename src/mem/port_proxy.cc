@@ -75,12 +75,14 @@ void
 PortProxy::writeBlobPhys(Addr addr, Request::Flags flags,
                          const void *p, int size) const
 {
+    //std::cout << "addr: " << addr << ", size " << size << std::endl;
     for (ChunkGenerator gen(addr, size, _cacheLineSize); !gen.done();
          gen.next()) {
 
         auto req = std::make_shared<Request>(
             gen.addr(), gen.size(), flags, Request::funcRequestorId);
 
+        //std::cout << "packet addr " << gen.addr() << ", size " << gen.size() << std::endl;
         Packet pkt(req, MemCmd::WriteReq);
         pkt.dataStaticConst(static_cast<const uint8_t *>(p));
         sendFunctional(&pkt);

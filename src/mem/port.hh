@@ -485,6 +485,7 @@ inline void
 RequestPort::sendFunctional(PacketPtr pkt) const
 {
     try {
+        //printf("check if access here\n");
         return FunctionalRequestProtocol::send(_responsePort, pkt);
     } catch (UnboundPortException) {
         reportUnbound();

@@ -299,6 +299,7 @@ void
 NoncoherentXBar::recvFunctional(PacketPtr pkt, PortID cpu_side_port_id)
 {
     if (!pkt->isPrint()) {
+        //printf("inside:%d\n",cpu_side_port_id);
         // don't do DPRINTFs on PrintReq as it clutters up the output
         DPRINTF(NoncoherentXBar,
                 "recvFunctional: packet src %s addr 0x%x cmd %s\n",
@@ -320,7 +321,7 @@ NoncoherentXBar::recvFunctional(PacketPtr pkt, PortID cpu_side_port_id)
 
     // determine the destination port
     PortID dest_id = findPort(pkt->getAddrRange());
-
+    
     // forward the request to the appropriate destination
     memSidePorts[dest_id]->sendFunctional(pkt);
 }

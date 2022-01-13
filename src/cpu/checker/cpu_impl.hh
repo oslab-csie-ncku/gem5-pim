@@ -276,6 +276,7 @@ Checker<DynInstPtr>::verify(const DynInstPtr &completed_inst)
                     PacketPtr pkt = new Packet(mem_req, MemCmd::ReadReq);
 
                     pkt->dataStatic(decoder.moreBytesPtr());
+                    std::cout << "in icache.cc" << std::endl;
                     icachePort->sendFunctional(pkt);
 
                     delete pkt;

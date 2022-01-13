@@ -473,7 +473,8 @@ def makeX86System(mem_mode, numCPUs=1, mdesc=None, workload=None, Ruby=False):
 
         self.mem_ranges = [AddrRange('3GB'),
             AddrRange(Addr('4GB'), size = excess_mem_size)]
-
+    #print('ppSTART: ' + str(self.mem_ranges[0].start) + ', ppEND: ' + str(self.mem_ranges[0].end))
+    #print('ppSTART: ' + str(self.mem_ranges[1].start) + ', ppEND: ' + str(self.mem_ranges[1].end))
     # Platform
     self.pc = Pc()
 
@@ -593,6 +594,7 @@ def makeLinuxX86System(mem_mode, numCPUs=1, mdesc=None, Ruby=False,
     # We assume below that there's at least 1MB of memory. We'll require 2
     # just to avoid corner cases.
     phys_mem_size = sum([r.size() for r in self.mem_ranges])
+    
     assert(phys_mem_size >= 0x200000)
     assert(len(self.mem_ranges) <= 2)
 

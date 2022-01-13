@@ -127,6 +127,7 @@ validateStatName(const std::string &name)
 void
 Info::setName(const std::string &name, bool old_style)
 {
+    // printf("%s\n", name.c_str());
     if (!validateStatName(name))
         panic("invalid stat name '%s'", name);
 

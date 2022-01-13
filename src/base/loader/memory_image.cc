@@ -53,9 +53,11 @@ MemoryImage::writeSegment(const Segment &seg, const PortProxy &proxy) const
 bool
 MemoryImage::write(const PortProxy &proxy) const
 {
-    for (auto &seg: _segments)
+    for (auto &seg: _segments) {
+        //std::cout << "down_addr: " << seg.base << ", seg.data: " << seg.data << ", size: " << seg.size << std::endl;
         if (!writeSegment(seg, proxy))
             return false;
+    }
     return true;
 }
 

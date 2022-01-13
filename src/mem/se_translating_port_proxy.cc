@@ -55,7 +55,7 @@ bool
 SETranslatingPortProxy::fixupAddr(Addr addr, BaseMMU::Mode mode) const
 {
     auto *process = _tc->getProcessPtr();
-
+    //std::cout << "se_trans" << std::endl;
     if (mode == BaseMMU::Write) {
         if (allocating == Always) {
             process->allocateMem(roundDown(addr, pageBytes), pageBytes);

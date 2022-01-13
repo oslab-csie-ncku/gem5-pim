@@ -60,7 +60,7 @@ ScratchpadMemory::initSystemDcaches(void)
 void
 ScratchpadMemory::init()
 {
-    AbstractMemory::init();
+    SimpleMemory::init();
 
     if (support_flush)
         initSystemDcaches();

@@ -439,7 +439,7 @@ class System : public SimObject, public PCEventScope
      * It's used to uniquely id any requestor in the system by name for things
      * like cache statistics.
      */
-    std::vector<RequestorInfo> requestors;
+    static std::vector<RequestorInfo> requestors;
 
     ThermalModel * thermalModel;
 

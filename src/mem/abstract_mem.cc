@@ -75,7 +75,6 @@ void
 AbstractMemory::initState()
 {
     ClockedObject::initState();
-
     const auto &file = params().image_file;
     if (file == "")
         return;

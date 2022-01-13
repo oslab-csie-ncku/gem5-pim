@@ -62,8 +62,8 @@ PIM_SPM_SIZE=4kB # The minimum memory size is page size, but it won't actually b
 PIM_SPM_REG_FLUSH_ADDR=0x450000000
 PIM_SPM_REG_FLUSH_SIZE=0x450000008
 PIM_SE_MEM_START=0x440000000 # Must be after the host physical memory range
-#PIM_SE_MEM_SIZE=256kB # if cache, The minimum memory size of DDR4_2400_8x8 is 256kB, but it won't actually be used so much
-PIM_SE_MEM_SIZE=16kB # if no cache
+PIM_SE_MEM_SIZE=512kB # if cache, The minimum memory size of DDR4_2400_8x8 is 256kB, but it won't actually be used so much
+#PIM_SE_MEM_SIZE=16kB # if no cache
 PIM_KERNEL=./master_work/pim-kernel/pim-kernel
 PIM_SE_INPUT=''
 PIM_SE_OUTPUT=pim-stdout
@@ -74,7 +74,7 @@ PIM_SE_ERROUT=pim-errout
 # ./master_work/workloads/metadata/
 # ./master_work/workloads/data/
 # ./master_work/workloads/real/
-SCRIPT=./master_work/workloads/real/fileserver.f
+SCRIPT='./master_work/workloads/real/'
 
 
 KERNEL=x86_64-vmlinux-4.18.0-nova-pohao
@@ -117,8 +117,8 @@ DISK_IMAGE=x86-ubuntu-14.04.6.img
     --pim-se-input="$PIM_SE_INPUT" \
     --pim-se-output="$PIM_SE_OUTPUT" \
     --pim-se-errout="$PIM_SE_ERROUT" \
-    --checkpoint-restore=3 \
-    --restore-with-cpu="$RESTORE_CPU_TYPE" \
+    `#--checkpoint-restore=1` \
+    `#--restore-with-cpu="$RESTORE_CPU_TYPE"` \
     --script="$SCRIPT" \
     --kernel="$KERNEL" \
     --command-line="$CMDLINE" \

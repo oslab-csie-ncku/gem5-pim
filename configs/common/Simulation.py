@@ -431,7 +431,7 @@ def run(options, root, testsys, cpu_class):
         cptdir = m5.options.outdir
     else:
         cptdir = getcwd()
-
+    
     if options.fast_forward and options.checkpoint_restore != None:
         fatal("Can't specify both --fast-forward and --checkpoint-restore")
 
@@ -443,7 +443,7 @@ def run(options, root, testsys, cpu_class):
 
     if options.repeat_switch and options.take_checkpoints:
         fatal("Can't specify both --repeat-switch and --take-checkpoints")
-
+    
     # Setup global stat filtering.
     stat_root_simobjs = []
     for stat_root_str in options.stats_root:
@@ -614,20 +614,33 @@ def run(options, root, testsys, cpu_class):
     if options.checkpoint_restore:
         cpt_starttick, checkpoint_dir = findCptDir(options, cptdir, testsys)
     root.apply_config(options.param)
-    m5.instantiate(checkpoint_dir)
 
+    m5.instantiate(checkpoint_dir)
     if hasattr(options, "pim_se") and \
         options.pim_se and options.checkpoint_restore == None:
         # Map SPM address range to SE PIM
         root.pim_system.cpu.workload[0].map(
-            long(root.pim_system.spm.range.start),
-            long(root.pim_system.spm.range.start),
-            long(root.pim_system.spm.range.size()),
+            int(root.pim_system.spm.range.start),
+            int(root.pim_system.spm.range.start),
+            int(root.pim_system.spm.range.size()),
             False)
         # Map all system address range to SE PIM
+        # cannot map size over int32_max number(2,147,483,647)
+        # divide addr. to multiple ranges
+        MAXINT=2147483647
         for r in testsys.mem_ranges:
-            root.pim_system.cpu.workload[0].map(long(r.start), long(r.start),
-                                                long(r.size()), False)
+            iter_r = int(int(r.size()) / MAXINT) + 1
+            start = r.start
+            for i in range(0,iter_r):
+                if (i != iter_r-1):
+                    size = MAXINT
+                else:
+                    size = int(int(r.size() - ((iter_r-1) * MAXINT)) - (1*iter_r))
+                #print('start:      ' + str(hex(start)))
+                #print('size:       ' + str(size))
+                #print('start+size: ' + str(hex(start+size)))
+                root.pim_system.cpu.workload[0].map(start, start, size, False)
+                start = start+MAXINT+1
 
     # Initialization is complete.  If we're not in control of simulation
     # (that is, if we're a slave simulator acting as a component in another

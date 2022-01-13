@@ -70,8 +70,8 @@ _drain_manager = _m5.drain.DrainManager.instance()
 # The final hook to generate .ini files.  Called from the user script
 # once the config is built.
 def instantiate(ckpt_dir=None):
-    from m5 import options
 
+    from m5 import options
     root = objects.Root.getInstance()
 
     if not root:
@@ -121,6 +121,7 @@ def instantiate(ckpt_dir=None):
 
     # Do a third pass to initialize statistics
     stats._bindStatHierarchy(root)
+
     root.regStats()
 
     # Do a fourth pass to initialize probe points

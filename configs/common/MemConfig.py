@@ -136,11 +136,16 @@ def config_mem(options, system):
     opt_xor_low_bit = getattr(options, "xor_low_bit", 0)
 
     # NVM options
-    opt_dram_nvm_type = getattr(options, "dram_nvm_type", None)
-    opt_dram_nvm_start = getattr(options, "dram_nvm_start", None)
-    opt_dram_nvm_size = getattr(options, "dram_nvm_size", None)
-
+    #opt_dram_nvm_type = getattr(options, "dram_nvm_type", None)
+    #opt_dram_nvm_start = getattr(options, "dram_nvm_start", None)
+    #opt_dram_nvm_size = getattr(options, "dram_nvm_size", None)
+    
+    opt_dram_nvm_type = options.dram_nvm_type
+    opt_dram_nvm_start = int(options.dram_nvm_start, 16)
+    opt_dram_nvm_size = str(options.dram_nvm_size)
+    
     from m5.util import convert
+    
     dram_nvm_end = opt_dram_nvm_start + \
                    convert.toMemorySize(opt_dram_nvm_size) - 1
 
@@ -208,9 +213,10 @@ def config_mem(options, system):
     from m5.objects import AddrRange
     mem_type_ranges = []
     mem_type_ranges_cls = []
+    
     for r in system.mem_ranges:
-        start = long(r.start)
-        end = long(r.end)
+        start = int(r.start)
+        end = int(r.end)
         if options.dram_nvm and start <= opt_dram_nvm_start \
            and dram_nvm_end <= end:
             if start != opt_dram_nvm_start:
@@ -219,12 +225,16 @@ def config_mem(options, system):
                                                         start))
                 mem_type_ranges_cls.append(intf)
 
+            #mem_type_ranges.append(AddrRange(opt_dram_nvm_start, \
+            #                                 size = dram_nvm_end - \
+            #                                        opt_dram_nvm_start + 1))
+
             mem_type_ranges.append(AddrRange(opt_dram_nvm_start, \
                                              size = dram_nvm_end - \
                                                     opt_dram_nvm_start + 1))
             mem_type_ranges_cls.append(dn_intf)
 
-            if dram_nvm_end != end:
+            if dram_nvm_end != (end-1):
                 mem_type_ranges.append(AddrRange(dram_nvm_end + 1,
                                                  size = end - dram_nvm_end))
                 mem_type_ranges_cls.append(intf)
@@ -236,6 +246,7 @@ def config_mem(options, system):
     # array of memory interfaces and set their parameters to match
     # their address mapping in the case of a DRAM
     range_iter = 0
+    
     for r in range(len(mem_type_ranges)):
         # As the loops iterates across ranges, assign them alternatively
         # to DRAM and NVM if both configured, starting with DRAM
@@ -266,11 +277,12 @@ def config_mem(options, system):
                         "latency to 1ns.")
 
                 if options.pim_baremetal or options.pim_se:
-                    mem_ctrl.bw_ratio = options.pim_bandwidth_ratio
+                    dram_intf.mem_bw_ratio = options.pim_bandwidth_ratio
 
                 # Create the controller that will drive the interface
                 mem_ctrl = dram_intf.controller()
-
+                if options.pim_baremetal or options.pim_se:
+                    mem_ctrl.bw_ratio = options.pim_bandwidth_ratio
                 mem_ctrls.append(mem_ctrl)
 
             elif opt_nvm_type and (not opt_mem_type or range_iter % 2 == 0):
@@ -300,7 +312,7 @@ def config_mem(options, system):
     # Connect the controller to the xbar port
     for i in range(len(mem_ctrls)):
         if options.pim_baremetal or options.pim_se:
-            subsystem.mem_ctrls[i].port = xbar.master
+            mem_ctrls[i].port = xbar.master
         else:
             if opt_mem_type == "HMC_2500_1x32":
                 # Connect the controllers to the membus

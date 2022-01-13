@@ -192,7 +192,7 @@ Bridge::BridgeResponsePort::recvTimingReq(PacketPtr pkt)
 
     panic_if(bridge.name() == "pim_system.tohostbridge" &&
              pkt->requestorId() <= 2,
-             "Should not see packets from master ID %d", pkt->requestorId());
+             "Should not see packets from requestor ID %d", pkt->requestorId());
 
     // we should not get a new request after committing to retry the
     // current one, but unfortunately the CPU violates this rule, so
@@ -401,7 +401,7 @@ Bridge::BridgeResponsePort::recvAtomic(PacketPtr pkt)
 
     panic_if(bridge.name() == "pim_system.tohostbridge" &&
              pkt->requestorId() <= 2,
-             "Should not see packets from master ID %d", pkt->requestorId());
+             "Should not see packets from requestor ID %d", pkt->requestorId());
 
     Tick latency;
     if (bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt))
@@ -415,9 +415,12 @@ Bridge::BridgeResponsePort::recvAtomic(PacketPtr pkt)
 void
 Bridge::BridgeResponsePort::recvFunctional(PacketPtr pkt)
 {
+    //printf("bridge.name: %s, requestor ID: %d, addr: %x", bridge.name(), pkt->requestorId(), pkt->getAddr());
+    //std::cout << "bridge.name: " << bridge.name() << ", requestor ID: " << 
+    //pkt->requestorId() << ", addr: " << pkt->getAddr() << std::endl;
     panic_if(bridge.name() == "pim_system.tohostbridge" &&
              pkt->requestorId() <= 2,
-             "Should not see packets from master ID %d", pkt->requestorId());
+             "Should not see packets from requestor ID %d, addr: %d", pkt->requestorId(), pkt->getAddr());
 
     pkt->pushLabel(name());
 

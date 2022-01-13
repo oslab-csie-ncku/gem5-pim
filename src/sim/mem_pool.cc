@@ -105,12 +105,16 @@ MemPool::allocate(Addr npages)
     freePageNum += npages;
     Addr next_return_addr = freePageAddr();
 
+    //std::cout << "return_addr: " << return_addr << ", npages: " << npages << std::endl;
+    //std::cout << "free page: " << freePages() << std::endl;
     if (sys->m5opRange().valid() &&
-        next_return_addr >= sys->m5opRange().start()) {
+        next_return_addr >= sys->m5opRange().start() &&
+        next_return_addr <= sys->m5opRange().end()) {
         warn("Reached m5ops MMIO region\n");
         return_addr = sys->m5opRange().end();
         freePageNum = (return_addr >> sys->getPageShift()) + npages;
     }
+    //std::cout << "free page: " << freePages() << std::endl;
 
     fatal_if((freePages() <= 0), "Out of memory, "
              "please increase size of physical memory.");

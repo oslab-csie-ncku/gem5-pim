@@ -103,16 +103,18 @@ bool
 TranslatingPortProxy::tryWriteBlob(
         Addr addr, const void *p, int size) const
 {
+    //std::cout << "TranslatingPortProxy::tryWriteBlob_addr: " << addr << std::endl;
     for (ChunkGenerator gen(addr, size, pageBytes); !gen.done();
          gen.next())
     {
+        //std::cout << "inside:tryWriteBlob_addr: " << gen.addr() << ", size: " << gen.size() << std::endl;
         auto req = std::make_shared<Request>(
                 gen.addr(), gen.size(), flags, Request::funcRequestorId, 0,
                 _tc->contextId());
 
         if (!tryTLBs(req, BaseMMU::Write))
             return false;
-
+        //std::cout << "down:tryWriteBlob_addr: " << req->getPaddr() << std::endl;
         PortProxy::writeBlobPhys(
                 req->getPaddr(), req->getFlags(), p, gen.size());
         p = static_cast<const uint8_t *>(p) + gen.size();

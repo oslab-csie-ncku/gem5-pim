@@ -210,6 +210,7 @@ CheckerCPU::readMem(Addr addr, uint8_t *data, unsigned size,
 
             if (!(mem_req->isUncacheable() || mem_req->isLocalAccess())) {
                 // Access memory to see if we have the same data
+                std::cout << "in dcache.cc" << std::endl;
                 dcachePort->sendFunctional(pkt);
             } else {
                 // Assume the data is correct if it's an uncached access

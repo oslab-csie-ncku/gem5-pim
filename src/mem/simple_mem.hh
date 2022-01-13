@@ -185,7 +185,7 @@ class SimpleMemory : public AbstractMemory
 
     Port &getPort(const std::string &if_name,
                   PortID idx=InvalidPortID) override;
-    //void init() override;
+    void init() override;
 
   protected:
     virtual Tick recvAtomic(PacketPtr pkt);

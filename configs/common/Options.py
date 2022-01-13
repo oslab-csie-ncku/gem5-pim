@@ -134,19 +134,19 @@ def addNoISAOptions(parser):
 
     parser.add_argument("--memchecker", action="store_true")
 
-    parser.add_option("--dram-nvm", action="store_true",
-                      help="Enable NVM controller")
-    parser.add_option("--dram-nvm-type", type="choice", default=None,
-                      choices=ObjectList.mem_list.get_names(),
-                      help = "type of NVM memory to use")
-    parser.add_option("--dram-nvm-start", action="store",
-                      type="long", default=0,
-                      help="""Specify the starting address of the NVM in the
-                              entire physical memory""")
-    parser.add_option("--dram-nvm-size", action="store", type="string",
-                      default="512MB",
-                      help="""Specify the size of the NVM in the entire
-                              physical memory""")
+    parser.add_argument("--dram-nvm", action="store_true",
+                        help="Enable NVM controller")
+    parser.add_argument("--dram-nvm-type", default="PCM_LPDDR2_400_8x8",
+                        choices=ObjectList.mem_list.get_names(),
+                        help = "type of NVM memory to use")
+    parser.add_argument("--dram-nvm-start", action="store",
+                        default=0,
+                        help="""Specify the starting address of the NVM in the
+                                entire physical memory""")
+    parser.add_argument("--dram-nvm-size", action="store", type=str,
+                        default="512MB",
+                        help="""Specify the size of the NVM in the entire
+                                physical memory""")
 
     # Cache Options
     parser.add_argument("--external-memory-system", type=str,

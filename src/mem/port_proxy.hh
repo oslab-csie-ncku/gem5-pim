@@ -156,6 +156,7 @@ class PortProxy : FunctionalRequestProtocol
     virtual bool
     tryWriteBlob(Addr addr, const void *p, int size) const
     {
+        //std::cout << "tryWriteBlob_addr: " << addr << std::endl;
         writeBlobPhys(addr, 0, p, size);
         return true;
     }
@@ -191,6 +192,7 @@ class PortProxy : FunctionalRequestProtocol
     void
     writeBlob(Addr addr, const void *p, int size) const
     {
+        //std::cout << "writeBlob_addr: " << addr << std::endl;
         if (!tryWriteBlob(addr, p, size))
             fatal("writeBlob(%#x, ...) failed", addr);
     }
