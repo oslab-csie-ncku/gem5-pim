@@ -466,6 +466,15 @@ DRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
     }
 }
 
+bool
+DRAMInterface::MEMPacketFromPIM(MemPacket *mem_pkt) const
+{
+    std::string _masterName =
+    _pimSystem->getRequestorName(mem_pkt->requestorId());
+    
+    return startswith(_masterName, _pimSystem->name()) ? true : false;
+}
+
 std::pair<Tick, Tick>
 DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
                              const std::vector<MemPacketQueue>& queue)
@@ -532,21 +541,25 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
     // 2) we are at an interleave boundary; if not, shift to next boundary
     Tick burst_gap = tBURST_MIN_pim;
     if (burstInterleave) {
-        if (cmd_at == (rank_ref.lastBurstTick + tBURST_MIN)) {
+        if (cmd_at == (rank_ref.lastBurstTick + tBURST_MIN_pim)) {
             // already interleaving, push next command to end of full burst
-            burst_gap = tBURST;
-        } else if (cmd_at < (rank_ref.lastBurstTick + tBURST)) {
+            burst_gap = tBURST_pim;
+        } else if (cmd_at < (rank_ref.lastBurstTick + tBURST_pim)) {
             // not at an interleave boundary after bandwidth check
             // Shift command to tBURST boundary to avoid data contention
             // Command will remain in the same burst window given that
             // tBURST is less than tBURST_MAX
-            cmd_at = rank_ref.lastBurstTick + tBURST;
+            cmd_at = rank_ref.lastBurstTick + tBURST_pim;
         }
     }
     DPRINTF(DRAM, "Schedule RD/WR burst at tick %d\n", cmd_at);
 
     // update the packet ready time
     mem_pkt->readyTime = cmd_at + tCL_pim + tBURST_pim;
+    
+    mem_pkt->actReadyTime = MEMPacketFromPIM(mem_pkt) ? mem_pkt->readyTime
+                            : (mem_pkt->readyTime - curTick()) * mem_bw_ratio +
+                            curTick();
 
     // I don't agree this, so I comment it out
     //if (mem_pkt->isWrite())
@@ -704,7 +717,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
         stats.perBankRdBursts[mem_pkt->bankId]++;
 
         // Update latency stats
-        stats.totMemAccLat += mem_pkt->readyTime - mem_pkt->entryTime;
+        stats.totMemAccLat += mem_pkt->actReadyTime - mem_pkt->entryTime;
         stats.totQLat += cmd_at - mem_pkt->entryTime;
         stats.totBusLat += tBURST_pim;
     } else {
@@ -906,7 +919,9 @@ void
 DRAMInterface::init()
 {
     AbstractMemory::init();
-
+    // Get PIM system SimObject
+    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
     // a bit of sanity checks on the interleaving, save it for here to
     // ensure that the system pointer is initialised
     if (range.interleaved()) {

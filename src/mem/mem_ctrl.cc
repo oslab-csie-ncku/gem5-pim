@@ -70,12 +70,12 @@ MemCtrl::MemCtrl(const MemCtrlParams &p) :
     writeLowThreshold(writeBufferSize * p.write_low_thresh_perc / 100.0),
     minWritesPerSwitch(p.min_writes_per_switch),
     writesThisTime(0), readsThisTime(0),
-    memSchedPolicy(p.mem_sched_policy),
+    memSchedPolicy(p.mem_sched_policy), bw_ratio(p.bw_ratio),
     frontendLatency(p.static_frontend_latency),
     frontendLatency_pim(frontendLatency / bw_ratio),
     backendLatency(p.static_backend_latency),
     backendLatency_pim(backendLatency / bw_ratio),
-    commandWindow(p.command_window), bw_ratio(p.bw_ratio),
+    commandWindow(p.command_window),
     nextBurstAt(0), prevArrival(0),
     nextReqTime(0),
     stats(*this)
@@ -141,7 +141,7 @@ MemCtrl::MEMPacketFromPIM(MemPacket *mem_pkt) const
 {
     std::string _masterName =
     _pimSystem->getRequestorName(mem_pkt->requestorId());
-
+    //std::cout << "masterName: " << _masterName << std::endl;
     return startswith(_masterName, _pimSystem->name()) ? true : false;
 }
 
@@ -543,9 +543,6 @@ MemCtrl::processRespondEvent()
             mem_pkt->burstHelper->burstCount) {
             // we have now serviced all children packets of a system packet
             // so we can now respond to the requestor
-            // @todo we probably want to have a different front end and back
-            // end latency for split packets
-            accessAndRespond(mem_pkt->pkt, frontendLatency + backendLatency);
             delete mem_pkt->burstHelper;
             mem_pkt->burstHelper = NULL;
         }
@@ -556,16 +553,18 @@ MemCtrl::processRespondEvent()
     if (!mem_pkt->burstHelper) {
         if (bw_ratio != 1) {
             if (MEMPacketFromPIM(mem_pkt))
-                assert(mem_pkt->readyTime == curTick());
+                assert(mem_pkt->actReadyTime == curTick());
             else
-                assert(mem_pkt->readyTime > curTick());
+                assert(mem_pkt->actReadyTime > curTick());
         }
 
-        assert(mem_pkt->readyTime >= curTick());
+        assert(mem_pkt->actReadyTime >= curTick());
         Tick latency = MEMPacketFromPIM(mem_pkt) ?
                        frontendLatency_pim + backendLatency_pim :
                        frontendLatency + backendLatency;
-        latency += (mem_pkt->readyTime - curTick()) * bw_ratio;
+        latency += (mem_pkt->actReadyTime - curTick()) * bw_ratio;
+        //std::cout << _pimSystem->getRequestorName(mem_pkt->requestorId()) << ", actReady: " << mem_pkt->actReadyTime << ", curTick(): " 
+        //<< curTick() << ", latency" << latency << std::endl;
         accessAndRespond(mem_pkt->pkt, latency);
     }
     /* default
@@ -726,6 +725,7 @@ MemCtrl::accessAndRespond(PacketPtr pkt, Tick static_latency)
         // queue the packet in the response queue to be sent out after
         // the static latency has passed
         port.schedTimingResp(pkt, response_time);
+        DPRINTF(MemCtrl, "Response Time %d\n", response_time);
     } else {
         // @todo the packet is going to be deleted, and the MemPacket
         // is still having a pointer to it
@@ -1082,7 +1082,7 @@ MemCtrl::processNextReqEvent()
             // log the response
             logResponse(MemCtrl::READ, (*to_read)->requestorId(),
                         mem_pkt->qosValue(), mem_pkt->getAddr(), 1,
-                        mem_pkt->readyTime - mem_pkt->entryTime);
+                        mem_pkt->actReadyTime - mem_pkt->entryTime);
 
 
             // Insert into response queue. It will be sent back to the

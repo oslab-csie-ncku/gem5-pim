@@ -103,7 +103,7 @@ class BaseCache(ClockedObject):
         "Notify the hardware prefetcher on hit on prefetched lines")
 
     tags = Param.BaseTags(BaseSetAssoc(), "Tag store")
-    replacement_policy = Param.BaseReplacementPolicy(LRURP(),
+    replacement_policy = Param.BaseReplacementPolicy(FIFORP(),
         "Replacement policy")
 
     compressor = Param.BaseCacheCompressor(NULL, "Cache compressor.")
@@ -132,7 +132,7 @@ class BaseCache(ClockedObject):
     # the clean writebacks are essential for performance. In general
     # this should be set to True for anything but the last-level
     # cache.
-    writeback_clean = Param.Bool(False, "Writeback clean lines")
+    writeback_clean = Param.Bool(True, "Writeback clean lines")
 
     # Control whether this cache should be mostly inclusive or mostly
     # exclusive with respect to upstream caches. The behaviour on a

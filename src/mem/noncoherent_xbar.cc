@@ -138,8 +138,8 @@ NoncoherentXBar::recvTimingReq(PacketPtr pkt, PortID cpu_side_port_id)
 
     // determine how long to be crossbar layer is busy
     Tick packetFinishTime = ideal || pktFromPIM(pkt) || pktToPimSpm(pkt) ?
-                            curTick() : clockEdge(Cycles(1)) +
-                            clockEdge(Cycles(1)) + pkt->payloadDelay;
+                            curTick() : clockEdge(Cycles(1))
+                            + pkt->payloadDelay;
 
     // before forwarding the packet (and possibly altering it),
     // remember if we are expecting a response
@@ -172,6 +172,9 @@ NoncoherentXBar::recvTimingReq(PacketPtr pkt, PortID cpu_side_port_id)
         assert(routeTo.find(pkt->req) == routeTo.end());
         routeTo[pkt->req] = cpu_side_port_id;
     }
+    // to avoid sudden crash for booting period
+    if (!packetFinishTime)
+        packetFinishTime = 1;
 
     reqLayers[mem_side_port_id]->succeededTiming(packetFinishTime);
 
@@ -233,7 +236,9 @@ NoncoherentXBar::recvTimingResp(PacketPtr pkt, PortID mem_side_port_id)
 
     // remove the request from the routing table
     routeTo.erase(route_lookup);
-
+    // to avoid sudden crash for booting period
+    if (!packetFinishTime)
+        packetFinishTime = 1;
     respLayers[cpu_side_port_id]->succeededTiming(packetFinishTime);
 
     // stats updates

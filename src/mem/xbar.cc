@@ -203,7 +203,6 @@ void BaseXBar::Layer<SrcType, DstType>::occupyLayer(Tick until)
     // packet to prevent any follow-on calls to sendTiming seeing an
     // unoccupied layer
     assert(state == BUSY);
-
     // until should never be 0 as express snoops never occupy the layer
     assert(until != 0);
     xbar.schedule(releaseEvent, until);
@@ -336,7 +335,11 @@ BaseXBar::Layer<SrcType, DstType>::retryWaiting()
         state = BUSY;
 
         // occupy the crossbar layer until the next clock edge
-        occupyLayer(xbar.ideal ? curTick() : xbar.clockEdge());
+        // to avoid sudden crash for booting period
+        if (!curTick())
+            occupyLayer(xbar.ideal ? 1 : xbar.clockEdge());
+        else
+            occupyLayer(xbar.ideal ? curTick() : xbar.clockEdge());
     }
 }
 
