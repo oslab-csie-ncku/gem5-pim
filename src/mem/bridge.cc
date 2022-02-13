@@ -58,7 +58,7 @@ namespace gem5
 Bridge::BridgeResponsePort::BridgeResponsePort(const std::string& _name,
                                          Bridge& _bridge,
                                          BridgeRequestPort& _memSidePort,
-                                         Cycles _delay, int _resp_limit,
+                                         Cycles _delay, unsigned int _resp_limit,
                                          std::vector<AddrRange> _ranges)
     : ResponsePort(_name, &_bridge), bridge(_bridge),
       memSidePort(_memSidePort), delay(_delay),
@@ -71,7 +71,7 @@ Bridge::BridgeResponsePort::BridgeResponsePort(const std::string& _name,
 Bridge::BridgeRequestPort::BridgeRequestPort(const std::string& _name,
                                            Bridge& _bridge,
                                            BridgeResponsePort& _cpuSidePort,
-                                           Cycles _delay, int _req_limit)
+                                           Cycles _delay, unsigned int _req_limit)
     : RequestPort(_name, &_bridge), bridge(_bridge),
       cpuSidePort(_cpuSidePort),
       delay(_delay), reqQueueLimit(_req_limit),

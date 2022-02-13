@@ -52,6 +52,7 @@
 #include "debug/TLB.hh"
 #include "debug/TLBVerbose.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -81,7 +82,7 @@ TableWalker::TableWalker(const Params &p)
     sctlr = 0;
 
     // Cache system-level properties
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(p.sys)) {
         ArmSystem *armSys = dynamic_cast<ArmSystem *>(p.sys);
         assert(armSys);
         haveSecurity = armSys->haveSecurity();

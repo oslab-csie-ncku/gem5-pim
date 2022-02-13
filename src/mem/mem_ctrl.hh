@@ -214,12 +214,12 @@ class MemPacket
     { }
 
         /**
-         * Function for sorting DRAMPacket pointer based on actReadyTime
+         * Function for sorting MemPacket pointer based on actReadyTime
          *
-         * @param a DRAMPacket pointer
-         * @param next DRAMPacket pointer
-         * @return true if actReadyTime of DRAMPacket pointer 1 < actReadyTime
-         * of DRAMPacket pointer 2
+         * @param a MemPacket pointer
+         * @param next MemPacket pointer
+         * @return true if actReadyTime of MemPacket pointer 1 < actReadyTime
+         * of MemPacket pointer 2
          */
         static bool sortActReadyTime(const MemPacket *mem_pkt,
                                      const MemPacket *mem_pkt_next) {

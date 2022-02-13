@@ -57,6 +57,7 @@
 #include "sim/faults.hh"
 #include "sim/stat_control.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -90,7 +91,7 @@ ISA::ISA(const Params &p) : BaseISA(p), system(NULL),
     system = dynamic_cast<ArmSystem *>(p.system);
 
     // Cache system-level properties
-    if (FullSystem && system) {
+    if (FullSystem && (system && !semodesystem::belongSEsys(system)) && system) {
         highestELIs64 = system->highestELIs64();
         haveSecurity = system->haveSecurity();
         haveLPAE = system->haveLPAE();
@@ -211,7 +212,7 @@ ISA::clear()
         (0 << 2)  | // 3:2
         0;          // 1:0
 
-    if (FullSystem && system->highestELIs64()) {
+    if (FullSystem && (system && !semodesystem::belongSEsys(system)) && system->highestELIs64()) {
         // Initialize AArch64 state
         clear64(p);
         return;
@@ -227,7 +228,7 @@ ISA::clear32(const ArmISAParams &p, const SCTLR &sctlr_rst)
     CPSR cpsr = 0;
     cpsr.mode = MODE_USER;
 
-    if (FullSystem) {
+    if (FullSystem && (system && !semodesystem::belongSEsys(system))) {
         miscRegs[MISCREG_MVBAR] = system->resetAddr();
     }
 
@@ -2357,7 +2358,7 @@ ISA::getGICv3CPUInterface()
 unsigned
 ISA::getCurSveVecLenInBits() const
 {
-    if (!FullSystem) {
+    if (!FullSystem && semodesystem::belongSEsys(tc))) {
         return sveVL * 128;
     }
 
@@ -2535,7 +2536,7 @@ ISA::addressTranslation(TLB::ArmTranslationType tran_type,
 ISA::MiscRegLUTEntryInitializer::chain
 ISA::MiscRegLUTEntryInitializer::highest(ArmSystem *const sys) const
 {
-    switch (FullSystem ? sys->highestEL() : EL1) {
+    switch ((FullSystem || semodesystem::belongSEsys(sys)) ? sys->highestEL() : EL1) {
       case EL0:
       case EL1: priv(); break;
       case EL2: hyp(); break;

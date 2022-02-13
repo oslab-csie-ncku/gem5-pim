@@ -162,6 +162,7 @@
 #include "mem/port.hh"
 #include "sim/full_system.hh"
 #include "sim/system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -198,7 +199,7 @@ RemoteGDB::RemoteGDB(System *_system, int _port)
 bool
 RemoteGDB::acc(Addr va, size_t len)
 {
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(context())) {
         for (ChunkGenerator gen(va, len, PageBytes); !gen.done(); gen.next()) {
             if (!tryTranslate(context(), gen.addr())) {
                 DPRINTF(GDBAcc, "acc:   %#x mapping is invalid\n", va);

@@ -967,6 +967,7 @@ DRAMInterface::startup()
         timeStampOffset = divCeil(curTick(), tCK_pim);
 
         for (auto r : ranks) {
+            // r->startup(curTick() + tREFI - tRP_pim); // PHSIM use tREFI, not tREFI_pim
             r->startup(curTick() + tREFI_pim - tRP_pim);
         }
     }

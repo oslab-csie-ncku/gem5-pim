@@ -918,13 +918,14 @@ MemCtrl::doBurstAccess(MemPacket* mem_pkt)
         ++readsThisTime;
         // Update latency stats
         stats.requestorReadTotalLat[mem_pkt->requestorId()] +=
-            mem_pkt->readyTime - mem_pkt->entryTime;
+            mem_pkt->actReadyTime - mem_pkt->entryTime;
         stats.requestorReadBytes[mem_pkt->requestorId()] += mem_pkt->size;
     } else {
         ++writesThisTime;
         stats.requestorWriteBytes[mem_pkt->requestorId()] += mem_pkt->size;
         stats.requestorWriteTotalLat[mem_pkt->requestorId()] +=
             mem_pkt->readyTime - mem_pkt->entryTime;
+         // mem_pkt->actReadyTime - mem_pkt->entryTime; PHSIM use mem_pkt->readyTime, not actReadyTime
     }
 }
 

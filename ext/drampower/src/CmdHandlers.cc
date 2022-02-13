@@ -86,7 +86,7 @@ void CommandAnalysis::handleRd(unsigned bank, int64_t timestamp)
   // If command is RD - update number of reads and read cycle. Check
   // for active idle cycles (if any).
   if (isPrecharged(bank)) {
-    printWarning("Bank is not active!", MemCommand::RD, timestamp, bank);
+    //printWarning("Bank is not active!", MemCommand::RD, timestamp, bank); // tmp
   }
   numberofreadsBanks[bank]++;
   idle_act_update(latest_read_cycle, latest_write_cycle, latest_act_cycle, timestamp);
@@ -99,7 +99,7 @@ void CommandAnalysis::handleWr(unsigned bank, int64_t timestamp)
   // If command is WR - update number of writes and write cycle. Check
   // for active idle cycles (if any).
   if (isPrecharged(bank)) {
-    printWarning("Bank is not active!", MemCommand::WR, timestamp, bank);
+    //printWarning("Bank is not active!", MemCommand::WR, timestamp, bank); // tmp
   }
   numberofwritesBanks[bank]++;
   idle_act_update(latest_read_cycle, latest_write_cycle, latest_act_cycle, timestamp);

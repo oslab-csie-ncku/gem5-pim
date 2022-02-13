@@ -53,6 +53,7 @@
 #include "cpu/thread_context.hh"
 #include "debug/Faults.hh"
 #include "sim/full_system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -508,7 +509,7 @@ ArmFault::invoke(ThreadContext *tc, const StaticInstPtr &inst)
     bool have_security       = ArmSystem::haveSecurity(tc);
 
     FaultBase::invoke(tc);
-    if (!FullSystem)
+    if (!FullSystem || semodesystem::belongSEsys(tc))
         return;
     countStat()++;
 
@@ -773,7 +774,7 @@ Reset::getVector(ThreadContext *tc)
 void
 Reset::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 {
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(tc)) {
         tc->getCpuPtr()->clearInterrupts(tc->threadId());
         tc->clearArchRegs();
     }
@@ -801,7 +802,7 @@ Reset::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 void
 UndefinedInstruction::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 {
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(tc)) {
         ArmFault::invoke(tc, inst);
         return;
     }
@@ -861,7 +862,7 @@ UndefinedInstruction::iss() const
 void
 SupervisorCall::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 {
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(tc)) {
         ArmFault::invoke(tc, inst);
         return;
     }
@@ -1015,7 +1016,7 @@ ArmFaultVals<T>::offset64(ThreadContext *tc)
 void
 SecureMonitorCall::invoke(ThreadContext *tc, const StaticInstPtr &inst)
 {
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(tc)) {
         ArmFault::invoke(tc, inst);
         return;
     }
@@ -1778,7 +1779,7 @@ SoftwareStepFault::iss() const
 void
 ArmSev::invoke(ThreadContext *tc, const StaticInstPtr &inst) {
     DPRINTF(Faults, "Invoking ArmSev Fault\n");
-    if (!FullSystem)
+    if (!FullSystem && semodesystem::belongSEsys(tc))
         return;
 
     // Set sev_mailbox to 1, clear the pending interrupt from remote

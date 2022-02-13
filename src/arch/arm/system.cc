@@ -50,6 +50,7 @@
 #include "dev/arm/fvp_base_pwr_ctrl.hh"
 #include "dev/arm/gic_v2.hh"
 #include "mem/physical.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -107,31 +108,36 @@ ArmSystem::ArmSystem(const Params &p)
 bool
 ArmSystem::haveSecurity(ThreadContext *tc)
 {
-    return FullSystem? getArmSystem(tc)->haveSecurity() : false;
+    return (FullSystem && !semodesystem::belongSEsys(tc))?
+            getArmSystem(tc)->haveSecurity() : false;
 }
 
 bool
 ArmSystem::haveLPAE(ThreadContext *tc)
 {
-    return FullSystem? getArmSystem(tc)->haveLPAE() : false;
+    return (FullSystem && !semodesystem::belongSEsys(tc))?
+            getArmSystem(tc)->haveLPAE() : false;
 }
 
 bool
 ArmSystem::haveVirtualization(ThreadContext *tc)
 {
-    return FullSystem? getArmSystem(tc)->haveVirtualization() : false;
+    return (FullSystem && !semodesystem::belongSEsys(tc))?
+            getArmSystem(tc)->haveVirtualization() : false;
 }
 
 bool
 ArmSystem::highestELIs64(ThreadContext *tc)
 {
-    return FullSystem? getArmSystem(tc)->highestELIs64() : true;
+    return (FullSystem && !semodesystem::belongSEsys(tc))?
+            getArmSystem(tc)->highestELIs64() : true;
 }
 
 ExceptionLevel
 ArmSystem::highestEL(ThreadContext *tc)
 {
-    return FullSystem? getArmSystem(tc)->highestEL() : EL1;
+    return (FullSystem && !semodesystem::belongSEsys(tc))?
+            getArmSystem(tc)->highestEL() : EL1;
 }
 
 bool
@@ -184,7 +190,7 @@ ArmSystem::haveLargeAsid64(ThreadContext *tc)
 bool
 ArmSystem::haveSemihosting(ThreadContext *tc)
 {
-    return FullSystem && getArmSystem(tc)->haveSemihosting();
+    return (FullSystem && !semodesystem::belongSEsys(tc)) && getArmSystem(tc)->haveSemihosting();
 }
 
 bool

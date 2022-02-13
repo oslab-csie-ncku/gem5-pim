@@ -616,6 +616,8 @@ def run(options, root, testsys, cpu_class):
     root.apply_config(options.param)
 
     m5.instantiate(checkpoint_dir)
+    '''
+    # Old version of mapping, cannot exceed INT_MAX_VALUE
     if hasattr(options, "pim_se") and \
         options.pim_se and options.checkpoint_restore == None:
         # Map SPM address range to SE PIM
@@ -641,7 +643,19 @@ def run(options, root, testsys, cpu_class):
                 #print('start+size: ' + str(hex(start+size)))
                 root.pim_system.cpu.workload[0].map(start, start, size, False)
                 start = start+MAXINT+1
-
+    '''
+    if hasattr(options, "pim_se") and \
+        options.pim_se and options.checkpoint_restore == None:
+        # Map SPM address range to SE PIM
+        root.pim_system.cpu.workload[0].map(
+            int(root.pim_system.spm.range.start),
+            int(root.pim_system.spm.range.start),
+            int(root.pim_system.spm.range.size()),
+            False)
+        # Map all system address range to SE PIM
+        for r in testsys.mem_ranges:
+            root.pim_system.cpu.workload[0].map(int(r.start), int(r.start),
+                                                int(r.size()), False)
     # Initialization is complete.  If we're not in control of simulation
     # (that is, if we're a slave simulator acting as a component in another
     #  'master' simulator) then we're done here.  The other simulator will

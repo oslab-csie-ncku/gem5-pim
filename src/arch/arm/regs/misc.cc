@@ -43,6 +43,7 @@
 #include "base/logging.hh"
 #include "cpu/thread_context.hh"
 #include "sim/full_system.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -4256,8 +4257,10 @@ ISA::initializeMiscRegMetadata()
       .secure().exceptUserMode();
     InitReg(MISCREG_MVBAR)
       .mon().secure()
-      .hypRead(FullSystem && system->highestEL() == EL2)
-      .privRead(FullSystem && system->highestEL() == EL1)
+      .hypRead(FullSystem && (system && !semodesystem::belongSEsys(system)) &&
+               system->highestEL() == EL2)
+      .privRead(FullSystem && (system && !semodesystem::belongSEsys(system)) &&
+               system->highestEL() == EL1)
       .exceptUserMode();
     InitReg(MISCREG_RMR)
       .unimplemented()

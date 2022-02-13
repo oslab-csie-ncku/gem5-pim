@@ -150,7 +150,7 @@
                 if (!recognized)
                     fault = std::make_shared<InvalidOpcode>();
             }}, IsNonSpeculative);
-            0x05: decode FullSystemInt {
+            0x05: decode FullSystemVal {
                 0: SyscallInst::syscall({{
                     return std::make_shared<SESyscallFault>();
                 }});
@@ -344,7 +344,7 @@
             0x1: Inst::RDTSC();
             0x2: Inst::RDMSR();
             0x3: rdpmc();
-            0x4: decode FullSystemInt {
+            0x4: decode FullSystemVal {
                 0: SyscallInst::sysenter({{
                     return std::make_shared<SESyscallFault>();
                 }});

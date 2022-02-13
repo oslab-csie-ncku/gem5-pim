@@ -138,7 +138,7 @@ class Bridge : public ClockedObject
         bool retryReq;
 
         /** Max queue size for reserved responses. */
-        unsigned int respQueueLimit;
+        const unsigned int respQueueLimit;
 
         /**
          * Upstream caches need this packet until true is returned, so
@@ -178,7 +178,7 @@ class Bridge : public ClockedObject
          */
         BridgeResponsePort(const std::string& _name, Bridge& _bridge,
                         BridgeRequestPort& _memSidePort, Cycles _delay,
-                        int _resp_limit, std::vector<AddrRange> _ranges);
+                        unsigned int _resp_limit, std::vector<AddrRange> _ranges);
 
         /**
          * Queue a response packet to be sent out later and also schedule
@@ -276,7 +276,7 @@ class Bridge : public ClockedObject
          */
         BridgeRequestPort(const std::string& _name, Bridge& _bridge,
                          BridgeResponsePort& _cpuSidePort, Cycles _delay,
-                         int _req_limit);
+                         unsigned int _req_limit);
 
         /**
          * Is this side blocked from accepting new request packets.

@@ -47,11 +47,13 @@ if env['TARGET_ISA'] == 'null':
     Return()
 
 SimObject('BadDevice.py')
+SimObject('TestDevice.py')
 
 Source('baddev.cc')
 Source('intel_8254_timer.cc')
 Source('mc146818.cc')
 Source('pixelpump.cc')
+Source('testdev.cc')
 
 DebugFlag('Intel8254Timer')
 DebugFlag('MC146818')

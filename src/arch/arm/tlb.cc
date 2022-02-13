@@ -70,6 +70,7 @@
 #include "sim/full_system.hh"
 #include "sim/process.hh"
 #include "sim/pseudo_inst.hh"
+#include "sim/se_mode_system.hh"
 
 namespace gem5
 {
@@ -86,7 +87,7 @@ TLB::TLB(const ArmTLBParams &p)
       miscRegValid(false), miscRegContext(0), curTranType(NormalTran)
 {
     // Cache system-level properties
-    if (FullSystem) {
+    if (FullSystem && !semodesystem::belongSEsys(p.sys)) {
         ArmSystem *arm_sys = dynamic_cast<ArmSystem *>(p.sys);
         assert(arm_sys);
         haveLPAE = arm_sys->haveLPAE();
@@ -1265,7 +1266,7 @@ TLB::translateAtomic(const RequestPtr &req, ThreadContext *tc,
 
     bool delay = false;
     Fault fault;
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(tc))
         fault = translateFs(req, tc, mode, NULL, delay, false, tranType);
     else
         fault = translateSe(req, tc, mode, NULL, delay, false);
@@ -1286,7 +1287,7 @@ TLB::translateFunctional(const RequestPtr &req, ThreadContext *tc,
 
     bool delay = false;
     Fault fault;
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(tc))
         fault = translateFs(req, tc, mode, NULL, delay, false, tranType, true);
    else
         fault = translateSe(req, tc, mode, NULL, delay, false);
@@ -1319,7 +1320,7 @@ TLB::translateComplete(const RequestPtr &req, ThreadContext *tc,
 {
     bool delay = false;
     Fault fault;
-    if (FullSystem)
+    if (FullSystem && !semodesystem::belongSEsys(tc))
         fault = translateFs(req, tc, mode, translation, delay, true, tranType);
     else
         fault = translateSe(req, tc, mode, translation, delay, true);

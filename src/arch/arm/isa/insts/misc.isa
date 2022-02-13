@@ -94,7 +94,8 @@ let {{
     CPSR cpsr = Cpsr;
     SCR  scr  = Scr;
 
-    if ((cpsr.mode != MODE_USER) && FullSystem) {
+    if ((cpsr.mode != MODE_USER) && FullSystem && 
+                                    !semodesystem::belongSEsys(xc->tcBase())) {
         if (EL2Enabled(xc->tcBase()) && (cpsr.mode != MODE_HYP) && hcr.tsc) {
             fault = std::make_shared<HypervisorTrap>(machInst, 0,
                                                      EC_SMC_TO_HYP);
@@ -124,7 +125,8 @@ let {{
     SCR  scr  = Scr;
 
     // Filter out the various cases where this instruction isn't defined
-    if (!FullSystem || !ArmSystem::haveVirtualization(xc->tcBase()) ||
+    if ((!FullSystem || semodesystem::belongSEsys(xc->tcBase())) ||
+        !ArmSystem::haveVirtualization(xc->tcBase()) ||
         (cpsr.mode == MODE_USER) ||
         (isSecure(xc->tcBase()) && !IsSecureEL2Enabled(xc->tcBase())) ||
         (ArmSystem::haveSecurity(xc->tcBase()) ? !scr.hce : hcr.hcd)) {
