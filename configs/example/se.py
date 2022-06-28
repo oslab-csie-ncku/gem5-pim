@@ -64,6 +64,8 @@ from common.FileSystemConfig import config_filesystem
 from common.Caches import *
 from common.cpu2000 import *
 
+from pim import PIM
+
 def get_processes(args):
     """Interprets provided args and returns a list of processes"""
 
@@ -119,15 +121,19 @@ parser = argparse.ArgumentParser()
 Options.addCommonOptions(parser)
 Options.addSEOptions(parser)
 
+# Add the PIM specific options
+PIM.define_options(parser)
+
 if '--ruby' in sys.argv:
     Ruby.define_options(parser)
 
 args = parser.parse_args()
 
 multiprocesses = []
-numThreads = 1
+numThreads = 2
 
 if args.bench:
+    print("args.bench")
     apps = args.bench.split("-")
     if len(apps) != args.num_cpus:
         print("number of benchmarks not equal to set num_cpus!")
@@ -148,6 +154,7 @@ if args.bench:
                   file=sys.stderr)
             sys.exit(1)
 elif args.cmd:
+    print("get processes")
     multiprocesses, numThreads = get_processes(args)
 else:
     print("No workload specified. Exiting!\n", file=sys.stderr)
@@ -162,13 +169,18 @@ if args.smt and args.num_cpus > 1:
     fatal("You cannot use SMT with multiple CPUs!")
 
 np = args.num_cpus
+pim_num = args.pim_stack_num
+
 mp0_path = multiprocesses[0].executable
 system = System(cpu = [CPUClass(cpu_id=i) for i in range(np)],
                 mem_mode = test_mem_mode,
                 mem_ranges = [AddrRange(args.mem_size)],
                 cache_line_size = args.cacheline_size)
 
+root = Root(full_system = False, system = system)
+print("numThreads : " + str(numThreads))
 if numThreads > 1:
+    print("multi_thread = True")
     system.multi_thread = True
 
 # Create a top-level voltage domain
@@ -256,9 +268,9 @@ if args.ruby:
 else:
     MemClass = Simulation.setMemClass(args)
     system.membus = SystemXBar()
-    system.system_port = system.membus.slave
     CacheConfig.config_cache(args, system)
-    MemConfig.config_mem(args, system)
+    system.system_port = system.membus.cpu_side_ports
+    MemConfig.config_sepim_mem(args, system)
     config_filesystem(system, args)
 
 system.workload = SEWorkload.init_compatible(mp0_path)
@@ -266,5 +278,13 @@ system.workload = SEWorkload.init_compatible(mp0_path)
 if args.wait_gdb:
     system.workload.wait_for_remote_gdb = True
 
-root = Root(full_system = False, system = system)
+if args.pim_se:
+    # multistack pim
+    root.pim_system = [PIM.build_pim_system(args, i) for i in range(pim_num) ]
+    for i, pim_sys in enumerate(root.pim_system):
+        PIM.connect_to_host_system(args, system, pim_sys, i)
+
+    if args.pim_se:
+        root.se_mode_system_name = root.pim_system.get_name()
+
 Simulation.run(args, root, system, FutureClass)

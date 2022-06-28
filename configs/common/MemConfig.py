@@ -139,17 +139,17 @@ def config_mem(options, system):
     #opt_dram_nvm_type = getattr(options, "dram_nvm_type", None)
     #opt_dram_nvm_start = getattr(options, "dram_nvm_start", None)
     #opt_dram_nvm_size = getattr(options, "dram_nvm_size", None)
-    
+
     opt_dram_nvm_type = options.dram_nvm_type
     opt_dram_nvm_start = int(options.dram_nvm_start, 16)
     opt_dram_nvm_size = str(options.dram_nvm_size)
-    
+
     from m5.util import convert
-    
+
     dram_nvm_end = opt_dram_nvm_start + \
                    convert.toMemorySize(opt_dram_nvm_size) - 1
 
-    if options.pim_baremetal or options.pim_se:
+    if options.pim_se:
         from pim import PIM
         subsystem = PIM.build_pim_mem_subsystem(options, system)
         xbar = subsystem.xbar
@@ -213,7 +213,7 @@ def config_mem(options, system):
     from m5.objects import AddrRange
     mem_type_ranges = []
     mem_type_ranges_cls = []
-    
+
     for r in system.mem_ranges:
         start = int(r.start)
         end = int(r.end)
@@ -246,7 +246,7 @@ def config_mem(options, system):
     # array of memory interfaces and set their parameters to match
     # their address mapping in the case of a DRAM
     range_iter = 0
-    
+
     for r in range(len(mem_type_ranges)):
         # As the loops iterates across ranges, assign them alternatively
         # to DRAM and NVM if both configured, starting with DRAM
@@ -325,3 +325,430 @@ def config_mem(options, system):
                 mem_ctrls[i].port = xbar.mem_side_ports
 
     subsystem.mem_ctrls = mem_ctrls
+
+def config_fspim_mem(options, system):
+    """
+    Create the memory controllers based on the options and attach them.
+
+    If requested, we make a multi-channel configuration of the
+    selected memory controller class by creating multiple instances of
+    the specific class. The individual controllers have their
+    parameters set such that the address range is interleaved between
+    them.
+    """
+
+    # Mandatory options
+    opt_mem_channels = options.mem_channels
+
+    # Semi-optional options
+    # Must have either mem_type or nvm_type or both
+    opt_mem_type = getattr(options, "mem_type", None)
+    opt_nvm_type = getattr(options, "nvm_type", None)
+    if not opt_mem_type and not opt_nvm_type:
+        fatal("Must have option for either mem-type or nvm-type, or both")
+
+    # Optional options
+    opt_tlm_memory = getattr(options, "tlm_memory", None)
+    opt_external_memory_system = getattr(options, "external_memory_system",
+                                         None)
+    opt_elastic_trace_en = getattr(options, "elastic_trace_en", False)
+    opt_mem_ranks = getattr(options, "mem_ranks", None)
+    opt_nvm_ranks = getattr(options, "nvm_ranks", None)
+    opt_hybrid_channel = getattr(options, "hybrid_channel", False)
+    opt_dram_powerdown = getattr(options, "enable_dram_powerdown", None)
+    opt_mem_channels_intlv = getattr(options, "mem_channels_intlv", 128)
+    opt_xor_low_bit = getattr(options, "xor_low_bit", 0)
+
+    # NVM option
+    opt_dram_nvm_type = options.dram_nvm_type
+    opt_dram_nvm_start = int(options.dram_nvm_start, 16)
+    opt_dram_nvm_size = str(options.dram_nvm_size)
+
+    from m5.util import convert
+
+    dram_nvm_end = opt_dram_nvm_start + \
+                   convert.toMemorySize(opt_dram_nvm_size) - 1
+
+    if options.pim_se:
+        from pim import PIM
+        # multistack pim
+        subsystem = PIM.build_pim_mem_subsystem(options, system)
+        # TODO
+        # xbar = subsystem[0].xbar
+    else:
+        subsystem = system
+        xbar = system.membus
+
+    if opt_tlm_memory:
+        system.external_memory = m5.objects.ExternalSlave(
+            port_type="tlm_slave",
+            port_data=opt_tlm_memory,
+            port=system.membus.mem_side_ports,
+            addr_ranges=system.mem_ranges)
+        system.workload.addr_check = False
+        return
+
+    if opt_external_memory_system:
+        subsystem.external_memory = m5.objects.ExternalSlave(
+            port_type=opt_external_memory_system,
+            port_data="init_mem0", port=xbar.master,
+            addr_ranges=system.mem_ranges)
+        subsystem.workload.addr_check = False
+        return
+
+    nbr_mem_ctrls = opt_mem_channels
+    import math
+    from m5.util import fatal
+    intlv_bits = int(math.log(nbr_mem_ctrls, 2))
+    if 2 ** intlv_bits != nbr_mem_ctrls:
+        fatal("Number of memory channels must be a power of 2")
+
+    if opt_mem_type:
+        intf = ObjectList.mem_list.get(opt_mem_type)
+        dn_intf = ObjectList.mem_list.get(opt_dram_nvm_type)
+    if opt_nvm_type:
+        n_intf = ObjectList.mem_list.get(opt_nvm_type)
+
+    nvm_intfs = []
+    mem_ctrls = []
+
+    if opt_elastic_trace_en and not issubclass(intf, m5.objects.SimpleMemory):
+        fatal("When elastic trace is enabled, configure mem-type as "
+                "simple-mem.")
+    # The default behaviour is to interleave memory channels on 128
+    # byte granularity, or cache line granularity if larger than 128
+    # byte. This value is based on the locality seen across a large
+    # range of workloads.
+    intlv_size = max(opt_mem_channels_intlv, system.cache_line_size.value)
+
+    # If NVM(define in DRAM) is used, the memory type corresponding
+    # to the memory range is distinguished.
+    from m5.objects import AddrRange
+    mem_type_ranges = []
+    mem_type_ranges_cls = []
+    for r in system.mem_ranges:
+        start = int(r.start)
+        end = int(r.end)
+        if options.dram_nvm and start <= opt_dram_nvm_start \
+           and dram_nvm_end <= end:
+            if start != opt_dram_nvm_start:
+                mem_type_ranges.append(AddrRange(start,
+                                                 size = opt_dram_nvm_start - \
+                                                        start))
+                mem_type_ranges_cls.append(intf)
+
+            pim_nvmsize = int((dram_nvm_end - opt_dram_nvm_start + 1) / options.pim_stack_num)
+            for i in range(options.pim_stack_num):
+                mem_type_ranges.append(AddrRange(opt_dram_nvm_start + pim_nvmsize * i,
+                                                        size = pim_nvmsize))
+                mem_type_ranges_cls.append(dn_intf)
+
+
+
+            if dram_nvm_end != (end-1):
+                mem_type_ranges.append(AddrRange(dram_nvm_end + 1,
+                                                 size = end - dram_nvm_end))
+                mem_type_ranges_cls.append(intf)
+        else:
+            mem_type_ranges.append(r)
+            mem_type_ranges_cls.append(intf)
+
+    # For every range (most systems will only have one), create an
+    # array of memory interfaces and set their parameters to match
+    # their address mapping in the case of a DRAM
+    range_iter = 0
+    for r in range(len(mem_type_ranges)):
+        # As the loops iterates across ranges, assign them alternatively
+        # to DRAM and NVM if both configured, starting with DRAM
+        range_iter += 1
+
+        for i in range(nbr_mem_ctrls):
+            if opt_mem_type and (not opt_nvm_type or range_iter % 2 != 0):
+                # Create the DRAM interface
+                dram_intf = create_mem_intf(mem_type_ranges_cls[r],
+                                            mem_type_ranges[r], i,
+                                            intlv_bits, intlv_size,
+                                            opt_xor_low_bit)
+
+                # Set the number of ranks based on the command-line
+                # options if it was explicitly set
+                if issubclass(mem_type_ranges_cls[r],
+                              m5.objects.DRAMInterface) and \
+                   opt_mem_ranks:
+                    dram_intf.ranks_per_channel = opt_mem_ranks
+
+                # Enable low-power DRAM states if option is set
+                if issubclass(intf, m5.objects.DRAMInterface):
+                    dram_intf.enable_dram_powerdown = opt_dram_powerdown
+
+                if opt_elastic_trace_en:
+                    dram_intf.latency = '1ns'
+                    print("For elastic trace, over-riding Simple Memory "
+                        "latency to 1ns.")
+
+                if options.pim_se:
+                    dram_intf.mem_bw_ratio = options.pim_bandwidth_ratio
+
+                # Create the controller that will drive the interface
+                mem_ctrl = dram_intf.controller()
+                if options.pim_se:
+                    mem_ctrl.bw_ratio = options.pim_bandwidth_ratio
+                mem_ctrls.append(mem_ctrl)
+
+            elif opt_nvm_type and (not opt_mem_type or range_iter % 2 == 0):
+                nvm_intf = create_mem_intf(n_intf, r, i,
+                    intlv_bits, intlv_size, opt_xor_low_bit)
+
+                # Set the number of ranks based on the command-line
+                # options if it was explicitly set
+                if issubclass(n_intf, m5.objects.NVMInterface) and \
+                   opt_nvm_ranks:
+                    nvm_intf.ranks_per_channel = opt_nvm_ranks
+
+                # Create a controller if not sharing a channel with DRAM
+                # in which case the controller has already been created
+                if not opt_hybrid_channel:
+                    mem_ctrl = m5.objects.MemCtrl()
+                    mem_ctrl.nvm = nvm_intf
+
+                    mem_ctrls.append(mem_ctrl)
+                else:
+                    nvm_intfs.append(nvm_intf)
+
+    # hook up NVM interface when channel is shared with DRAM + NVM
+    for i in range(len(nvm_intfs)):
+        mem_ctrls[i].nvm = nvm_intfs[i]
+
+    # Connect the controller to the xbar port
+    if options.pim_se:
+        for s in range(options.pim_stack_num):
+            mem_ctrls[options.pim_stack_num-s+1].port = subsystem[s].xbar.mem_side_ports
+        for i in range(len(mem_ctrls) - options.pim_stack_num):
+            mem_ctrls[i].port = subsystem[options.pim_stack_num].xbar.mem_side_ports
+    else:
+        for i in range(len(mem_ctrls)):
+            # Connect the controllers to the membus
+            mem_ctrls[i].port = xbar.mem_side_ports
+
+    # for mc in mem_ctrls:
+    #     print(mc.dram.range)
+
+    for i in range(options.pim_stack_num):
+        subsystem[i].mem_ctrls = mem_ctrls[options.pim_stack_num-i+1]
+        subsystem[i].bridge.ranges = mem_ctrls[options.pim_stack_num-i+1].dram.range
+        print(mem_ctrls[options.pim_stack_num-i].dram.range)
+
+    dram_ctrls_num = len(mem_ctrls) - options.pim_stack_num
+    subsystem[options.pim_stack_num].mem_ctrls = [mem_ctrls[i] for i in range(dram_ctrls_num)]
+    subsystem[options.pim_stack_num].bridge.ranges = [subsystem[options.pim_stack_num].mem_ctrls[i].dram.range for i in range(dram_ctrls_num)]
+
+def config_sepim_mem(options, system):
+    """
+    Create the memory controllers based on the options and attach them.
+
+    If requested, we make a multi-channel configuration of the
+    selected memory controller class by creating multiple instances of
+    the specific class. The individual controllers have their
+    parameters set such that the address range is interleaved between
+    them.
+    """
+
+    # Mandatory options
+    opt_mem_channels = options.mem_channels
+
+    # Semi-optional options
+    # Must have either mem_type or nvm_type or both
+    opt_mem_type = getattr(options, "mem_type", None)
+    opt_nvm_type = getattr(options, "nvm_type", None)
+    if not opt_mem_type and not opt_nvm_type:
+        fatal("Must have option for either mem-type or nvm-type, or both")
+
+    # Optional options
+    opt_tlm_memory = getattr(options, "tlm_memory", None)
+    opt_external_memory_system = getattr(options, "external_memory_system",
+                                         None)
+    opt_elastic_trace_en = getattr(options, "elastic_trace_en", False)
+    opt_mem_ranks = getattr(options, "mem_ranks", None)
+    opt_nvm_ranks = getattr(options, "nvm_ranks", None)
+    opt_hybrid_channel = getattr(options, "hybrid_channel", False)
+    opt_dram_powerdown = getattr(options, "enable_dram_powerdown", None)
+    opt_mem_channels_intlv = getattr(options, "mem_channels_intlv", 128)
+    opt_xor_low_bit = getattr(options, "xor_low_bit", 0)
+
+    # NVM option
+    opt_dram_nvm_type = options.dram_nvm_type
+    opt_dram_nvm_start = int(options.dram_nvm_start, 16)
+    opt_dram_nvm_size = str(options.dram_nvm_size)
+
+    from m5.util import convert
+
+    dram_nvm_end = opt_dram_nvm_start + \
+                   convert.toMemorySize(opt_dram_nvm_size) - 1
+
+    if options.pim_se:
+        from pim import PIM
+        # multistack pim
+        subsystem = PIM.build_pim_mem_subsystem(options, system)
+        # TODO
+        # xbar = subsystem[0].xbar
+    else:
+        subsystem = system
+        xbar = system.membus
+
+    if opt_tlm_memory:
+        system.external_memory = m5.objects.ExternalSlave(
+            port_type="tlm_slave",
+            port_data=opt_tlm_memory,
+            port=system.membus.mem_side_ports,
+            addr_ranges=system.mem_ranges)
+        system.workload.addr_check = False
+        return
+
+    if opt_external_memory_system:
+        subsystem.external_memory = m5.objects.ExternalSlave(
+            port_type=opt_external_memory_system,
+            port_data="init_mem0", port=xbar.master,
+            addr_ranges=system.mem_ranges)
+        subsystem.workload.addr_check = False
+        return
+
+    nbr_mem_ctrls = opt_mem_channels
+    import math
+    from m5.util import fatal
+    intlv_bits = int(math.log(nbr_mem_ctrls, 2))
+    if 2 ** intlv_bits != nbr_mem_ctrls:
+        fatal("Number of memory channels must be a power of 2")
+
+    if opt_mem_type:
+        intf = ObjectList.mem_list.get(opt_mem_type)
+        dn_intf = ObjectList.mem_list.get(opt_dram_nvm_type)
+    if opt_nvm_type:
+        n_intf = ObjectList.mem_list.get(opt_nvm_type)
+
+    nvm_intfs = []
+    mem_ctrls = []
+
+    if opt_elastic_trace_en and not issubclass(intf, m5.objects.SimpleMemory):
+        fatal("When elastic trace is enabled, configure mem-type as "
+                "simple-mem.")
+    # The default behaviour is to interleave memory channels on 128
+    # byte granularity, or cache line granularity if larger than 128
+    # byte. This value is based on the locality seen across a large
+    # range of workloads.
+    intlv_size = max(opt_mem_channels_intlv, system.cache_line_size.value)
+
+    # If NVM(define in DRAM) is used, the memory type corresponding
+    # to the memory range is distinguished.
+    from m5.objects import AddrRange
+    mem_type_ranges = []
+    mem_type_ranges_cls = []
+    for r in system.mem_ranges:
+        start = int(r.start)
+        end = int(r.end)
+        if options.dram_nvm and start <= opt_dram_nvm_start \
+           and dram_nvm_end <= end:
+            pim_nvmsize = int((dram_nvm_end - opt_dram_nvm_start + 1) / options.pim_stack_num)
+            for i in range(options.pim_stack_num):
+                mem_type_ranges.append(AddrRange(opt_dram_nvm_start + pim_nvmsize * i,
+                                                        size = pim_nvmsize))
+                mem_type_ranges_cls.append(dn_intf)
+
+            if start != opt_dram_nvm_start:
+                mem_type_ranges.append(AddrRange(start,
+                                                 size = opt_dram_nvm_start - \
+                                                        start))
+                mem_type_ranges_cls.append(intf)
+
+            if dram_nvm_end != (end-1):
+                mem_type_ranges.append(AddrRange(dram_nvm_end + 1,
+                                                 size = end - dram_nvm_end))
+                mem_type_ranges_cls.append(intf)
+        else:
+            mem_type_ranges.append(r)
+            mem_type_ranges_cls.append(intf)
+
+    # For every range (most systems will only have one), create an
+    # array of memory interfaces and set their parameters to match
+    # their address mapping in the case of a DRAM
+    range_iter = 0
+    for r in range(len(mem_type_ranges)):
+        # As the loops iterates across ranges, assign them alternatively
+        # to DRAM and NVM if both configured, starting with DRAM
+        range_iter += 1
+
+        for i in range(nbr_mem_ctrls):
+            if opt_mem_type and (not opt_nvm_type or range_iter % 2 != 0):
+                # Create the DRAM interface
+                dram_intf = create_mem_intf(mem_type_ranges_cls[r],
+                                            mem_type_ranges[r], i,
+                                            intlv_bits, intlv_size,
+                                            opt_xor_low_bit)
+
+                # Set the number of ranks based on the command-line
+                # options if it was explicitly set
+                if issubclass(mem_type_ranges_cls[r],
+                              m5.objects.DRAMInterface) and \
+                   opt_mem_ranks:
+                    dram_intf.ranks_per_channel = opt_mem_ranks
+
+                # Enable low-power DRAM states if option is set
+                if issubclass(intf, m5.objects.DRAMInterface):
+                    dram_intf.enable_dram_powerdown = opt_dram_powerdown
+
+                if opt_elastic_trace_en:
+                    dram_intf.latency = '1ns'
+                    print("For elastic trace, over-riding Simple Memory "
+                        "latency to 1ns.")
+
+                if options.pim_se:
+                    dram_intf.mem_bw_ratio = options.pim_bandwidth_ratio
+
+                # Create the controller that will drive the interface
+                mem_ctrl = dram_intf.controller()
+                if options.pim_se:
+                    mem_ctrl.bw_ratio = options.pim_bandwidth_ratio
+                mem_ctrls.append(mem_ctrl)
+
+            elif opt_nvm_type and (not opt_mem_type or range_iter % 2 == 0):
+                nvm_intf = create_mem_intf(n_intf, r, i,
+                    intlv_bits, intlv_size, opt_xor_low_bit)
+
+                # Set the number of ranks based on the command-line
+                # options if it was explicitly set
+                if issubclass(n_intf, m5.objects.NVMInterface) and \
+                   opt_nvm_ranks:
+                    nvm_intf.ranks_per_channel = opt_nvm_ranks
+
+                # Create a controller if not sharing a channel with DRAM
+                # in which case the controller has already been created
+                if not opt_hybrid_channel:
+                    mem_ctrl = m5.objects.MemCtrl()
+                    mem_ctrl.nvm = nvm_intf
+
+                    mem_ctrls.append(mem_ctrl)
+                else:
+                    nvm_intfs.append(nvm_intf)
+
+    # hook up NVM interface when channel is shared with DRAM + NVM
+    for i in range(len(nvm_intfs)):
+        mem_ctrls[i].nvm = nvm_intfs[i]
+    # Connect the controller to the xbar port
+    if options.pim_se:
+        for s in range(options.pim_stack_num):
+            mem_ctrls[s].port = subsystem[s].xbar.mem_side_ports
+        for i in range(len(mem_ctrls) - options.pim_stack_num):
+            mem_ctrls[options.pim_stack_num + i].port = subsystem[options.pim_stack_num].xbar.mem_side_ports
+    else:
+        for i in range(len(mem_ctrls)):
+            # Connect the controllers to the membus
+            mem_ctrls[i].port = xbar.mem_side_ports
+
+    for mc in mem_ctrls:
+        print(mc.dram.range)
+    for i in range(options.pim_stack_num):
+        subsystem[i].mem_ctrls = mem_ctrls[i]
+        subsystem[i].bridge.ranges = mem_ctrls[i].dram.range
+
+    dram_ctrls_num = len(mem_ctrls) - options.pim_stack_num
+    subsystem[options.pim_stack_num].mem_ctrls = [mem_ctrls[options.pim_stack_num + i] for i in range(dram_ctrls_num)]
+    subsystem[options.pim_stack_num].bridge.ranges = [subsystem[options.pim_stack_num].mem_ctrls[i].dram.range for i in range(dram_ctrls_num)]

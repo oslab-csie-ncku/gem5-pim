@@ -50,6 +50,7 @@
 #include "debug/Bridge.hh"
 #include "mem/scratchpad_mem.hh"
 #include "params/Bridge.hh"
+#include "sim/se_mode_system.hh"
 #include "sim/system.hh"
 
 namespace gem5
@@ -113,14 +114,36 @@ Bridge::init()
     // notify the request side  of our address ranges
     cpuSidePort.sendRangeChange();
 
-    // get PIM system SimObject
-    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
-    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+    // Get PIM system SimObject
+    if (!semodesystem::MultipleSESystem) {
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+        fatal_if(!_pimSystem, "Bridge : Cannot find SimObject pim_system");
 
-    // get PIM SPM
-    pimSpm = dynamic_cast<memory::ScratchpadMemory *>
-             (SimObject::find("pim_system.spm"));
-    fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
+        // Get PIM SPM
+        pimSpm = dynamic_cast<memory::ScratchpadMemory *>
+                (SimObject::find("pim_system.spm"));
+        fatal_if(!pimSpm, "Bridge : Cannot find SimObject pim_system.spm");
+    } else {
+        /* multistack PIM */
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+        fatal_if(!_pimSystem, "Bridge : Cannot find SimObject pim_system");
+
+        // Get PIM SPM
+        for (int i=0; i<semodesystem::MemStackNum; i++) {
+            std::string systemname = semodesystem::SEModeSystemsName[i];
+            pimSpms.push_back(dynamic_cast<memory::ScratchpadMemory *>
+                (SimObject::find(strcat(&systemname[0], ".spm"))));
+        }
+        fatal_if((!pimSpms.size()),
+                    "Bridge : Cannot find SimObject pim_system spm");
+    }
+
+    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+
+    // pimSpm = dynamic_cast<memory::ScratchpadMemory *>
+    //          (SimObject::find("pim_system0.spm"));
+    // fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
 }
 
 bool
@@ -133,10 +156,21 @@ Bridge::pktFromPIM(PacketPtr pkt) const
 bool
 Bridge::pktToPimSpm(PacketPtr pkt) const
 {
-    if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
-        return true;
-    else
-        return false;
+    // if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+    //     return true;
+    // else
+    //     return false;
+    if (!semodesystem::MultipleSESystem) {
+        if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+            return true;
+    } else {
+        /* multistack PIM */
+        for (int i=0; i<pimSpms.size(); i++) {
+            if (pkt->getAddrRange().isSubset(pimSpms[i]->getAddrRange()))
+                return true;
+        }
+    }
+    return false;
 }
 
 bool
@@ -416,7 +450,7 @@ void
 Bridge::BridgeResponsePort::recvFunctional(PacketPtr pkt)
 {
     //printf("bridge.name: %s, requestor ID: %d, addr: %x", bridge.name(), pkt->requestorId(), pkt->getAddr());
-    //std::cout << "bridge.name: " << bridge.name() << ", requestor ID: " << 
+    //std::cout << "bridge.name: " << bridge.name() << ", requestor ID: " <<
     //pkt->requestorId() << ", addr: " << pkt->getAddr() << std::endl;
     panic_if(bridge.name() == "pim_system.tohostbridge" &&
              pkt->requestorId() <= 2,

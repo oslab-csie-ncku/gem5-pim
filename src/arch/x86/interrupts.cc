@@ -61,8 +61,8 @@
 #include "dev/x86/south_bridge.hh"
 #include "mem/packet_access.hh"
 #include "sim/full_system.hh"
-#include "sim/system.hh"
 #include "sim/se_mode_system.hh"
+#include "sim/system.hh"
 
 namespace gem5
 {
@@ -283,7 +283,7 @@ X86ISA::Interrupts::setThreadContext(ThreadContext *_tc)
 
     BaseInterrupts::setThreadContext(_tc);
 
-    initialApicId = tc->cpuId();
+    initialApicId = tc->cpuId() + tc->threadId();;
     regs[APIC_ID] = (initialApicId << 24);
     pioAddr = x86LocalAPICAddress(initialApicId, 0);
 }

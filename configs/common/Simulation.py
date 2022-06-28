@@ -431,7 +431,7 @@ def run(options, root, testsys, cpu_class):
         cptdir = m5.options.outdir
     else:
         cptdir = getcwd()
-    
+
     if options.fast_forward and options.checkpoint_restore != None:
         fatal("Can't specify both --fast-forward and --checkpoint-restore")
 
@@ -443,7 +443,7 @@ def run(options, root, testsys, cpu_class):
 
     if options.repeat_switch and options.take_checkpoints:
         fatal("Can't specify both --repeat-switch and --take-checkpoints")
-    
+
     # Setup global stat filtering.
     stat_root_simobjs = []
     for stat_root_str in options.stats_root:
@@ -647,15 +647,22 @@ def run(options, root, testsys, cpu_class):
     if hasattr(options, "pim_se") and \
         options.pim_se and options.checkpoint_restore == None:
         # Map SPM address range to SE PIM
-        root.pim_system.cpu.workload[0].map(
-            int(root.pim_system.spm.range.start),
-            int(root.pim_system.spm.range.start),
-            int(root.pim_system.spm.range.size()),
-            False)
-        # Map all system address range to SE PIM
-        for r in testsys.mem_ranges:
-            root.pim_system.cpu.workload[0].map(int(r.start), int(r.start),
-                                                int(r.size()), False)
+        for pim_sys in root.pim_system:
+            pim_sys.cpu.workload[0].map(
+                    18522046464, #0x450000000
+                    int(pim_sys.spm.range.start),
+                    int(pim_sys.spm.range.size()),
+                    False)
+            # Map system address range to SE PIM
+            start = int(pim_sys.tohostbridge.ranges[0].start)
+            end = int(pim_sys.tohostbridge.ranges[0].end)
+            print("map : " + str(start) + " <-> " + str(end))
+            pim_sys.cpu.workload[0].map(start, start,
+                                        start-end, False)
+            # for r in testsys.memsubsystem:
+            #     print("map : " + str(r.start) + " <-> " + str(r.end))
+            #     pim_sys.cpu.workload[0].map(int(r.start), int(r.start),
+            #                                         int(r.size()), False)
     # Initialization is complete.  If we're not in control of simulation
     # (that is, if we're a slave simulator acting as a component in another
     #  'master' simulator) then we're done here.  The other simulator will

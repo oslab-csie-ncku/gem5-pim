@@ -47,6 +47,7 @@
 #include "debug/NVM.hh"
 #include "debug/QOS.hh"
 #include "mem/mem_interface.hh"
+#include "sim/se_mode_system.hh"
 #include "sim/system.hh"
 
 namespace gem5
@@ -108,8 +109,15 @@ MemCtrl::init()
         port.sendRangeChange();
     }
     // Get PIM system SimObject
-    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
-    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+    if (!semodesystem::MultipleSESystem) {
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+    } else {
+        /* multistack PIM */
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    }
+    fatal_if(!_pimSystem, "memCtrl : Cannot find SimObject pim_system");
+    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
 }
 
 void
@@ -563,7 +571,8 @@ MemCtrl::processRespondEvent()
                        frontendLatency_pim + backendLatency_pim :
                        frontendLatency + backendLatency;
         latency += (mem_pkt->actReadyTime - curTick()) * bw_ratio;
-        //std::cout << _pimSystem->getRequestorName(mem_pkt->requestorId()) << ", actReady: " << mem_pkt->actReadyTime << ", curTick(): " 
+        //std::cout << _pimSystem->getRequestorName(mem_pkt->requestorId()) 
+        // << ", actReady: " << mem_pkt->actReadyTime << ", curTick(): "
         //<< curTick() << ", latency" << latency << std::endl;
         accessAndRespond(mem_pkt->pkt, latency);
     }

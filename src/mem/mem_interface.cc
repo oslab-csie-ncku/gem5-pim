@@ -47,6 +47,7 @@
 #include "debug/DRAMPower.hh"
 #include "debug/DRAMState.hh"
 #include "debug/NVM.hh"
+#include "sim/se_mode_system.hh"
 #include "sim/system.hh"
 
 namespace gem5
@@ -471,7 +472,7 @@ DRAMInterface::MEMPacketFromPIM(MemPacket *mem_pkt) const
 {
     std::string _masterName =
     _pimSystem->getRequestorName(mem_pkt->requestorId());
-    
+
     return startswith(_masterName, _pimSystem->name()) ? true : false;
 }
 
@@ -556,7 +557,7 @@ DRAMInterface::doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,
 
     // update the packet ready time
     mem_pkt->readyTime = cmd_at + tCL_pim + tBURST_pim;
-    
+
     mem_pkt->actReadyTime = MEMPacketFromPIM(mem_pkt) ? mem_pkt->readyTime
                             : (mem_pkt->readyTime - curTick()) * mem_bw_ratio +
                             curTick();
@@ -920,8 +921,15 @@ DRAMInterface::init()
 {
     AbstractMemory::init();
     // Get PIM system SimObject
-    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
-    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+    if (!semodesystem::MultipleSESystem) {
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+    } else {
+        /* multistack PIM */
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    }
+    fatal_if(!_pimSystem, "memInterface : Cannot find SimObject pim_system");
+    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
     // a bit of sanity checks on the interleaving, save it for here to
     // ensure that the system pointer is initialised
     if (range.interleaved()) {

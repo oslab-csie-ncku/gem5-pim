@@ -82,33 +82,9 @@ def cmd_line_template():
 
 def build_test_system(np):
     cmdline = cmd_line_template()
-    if buildEnv['TARGET_ISA'] == "mips":
-        test_sys = makeLinuxMipsSystem(test_mem_mode, bm[0], cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == "sparc":
-        test_sys = makeSparcSystem(test_mem_mode, bm[0], cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == "riscv":
-        test_sys = makeBareMetalRiscvSystem(test_mem_mode, bm[0],
-                                            cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == "x86":
+    if buildEnv['TARGET_ISA'] == "x86":
         test_sys = makeLinuxX86System(test_mem_mode, np, bm[0], args.ruby,
                                       cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == "arm":
-        test_sys = makeArmSystem(
-            test_mem_mode,
-            args.machine_type,
-            np,
-            bm[0],
-            args.dtb_filename,
-            bare_metal=args.bare_metal,
-            cmdline=cmdline,
-            external_memory=args.external_memory_system,
-            ruby=args.ruby,
-            security=args.enable_security_extensions,
-            vio_9p=args.vio_9p,
-            bootloader=args.bootloader,
-        )
-        if args.enable_context_switch_stats_dump:
-            test_sys.enable_context_switch_stats_dump = True
     else:
         fatal("Incapable of building %s full system!", buildEnv['TARGET_ISA'])
 
@@ -130,19 +106,11 @@ def build_test_system(np):
                                              voltage_domain =
                                              test_sys.cpu_voltage_domain)
 
-    if buildEnv['TARGET_ISA'] == 'riscv':
-        test_sys.workload.bootloader = args.kernel
-    elif args.kernel is not None:
+    if args.kernel is not None:
         test_sys.workload.object_file = binary(args.kernel)
 
     if args.script is not None:
         test_sys.readfile = args.script
-
-    if args.lpae:
-        test_sys.have_lpae = True
-
-    if args.virtualisation:
-        test_sys.have_virtualization = True
 
     test_sys.init_param = args.init_param
 
@@ -150,91 +118,22 @@ def build_test_system(np):
     test_sys.cpu = [TestCPUClass(clk_domain=test_sys.cpu_clk_domain, cpu_id=i)
                     for i in range(np)]
 
-    if args.ruby:
-        bootmem = getattr(test_sys, '_bootmem', None)
-        Ruby.create_system(args, True, test_sys, test_sys.iobus,
-                           test_sys._dma_ports, bootmem)
 
-        # Create a seperate clock domain for Ruby
-        test_sys.ruby.clk_domain = SrcClockDomain(clock = args.ruby_clock,
-                                        voltage_domain = test_sys.voltage_domain)
+    if args.caches or args.l2cache:
+        # By default the IOCache runs at the system clock
+        test_sys.iocache = IOCache(addr_ranges = test_sys.mem_ranges)
+        test_sys.iocache.cpu_side = test_sys.iobus.master
+        test_sys.iocache.mem_side = test_sys.membus.slave
+    elif not args.external_memory_system:
+        test_sys.iobridge = Bridge(delay='50ns', ranges = test_sys.mem_ranges)
+        test_sys.iobridge.slave = test_sys.iobus.master
+        test_sys.iobridge.master = test_sys.membus.slave
 
-        # Connect the ruby io port to the PIO bus,
-        # assuming that there is just one such port.
-        test_sys.iobus.master = test_sys.ruby._io_port.slave
+    for i in range(np):
+        test_sys.cpu[i].createThreads()
 
-        for (i, cpu) in enumerate(test_sys.cpu):
-            #
-            # Tie the cpu ports to the correct ruby system ports
-            #
-            cpu.clk_domain = test_sys.cpu_clk_domain
-            cpu.createThreads()
-            cpu.createInterruptController()
-
-            test_sys.ruby._cpu_ports[i].connectCpuPorts(cpu)
-
-    else:
-        if args.caches or args.l2cache:
-            # By default the IOCache runs at the system clock
-            test_sys.iocache = IOCache(addr_ranges = test_sys.mem_ranges)
-            test_sys.iocache.cpu_side = test_sys.iobus.master
-            test_sys.iocache.mem_side = test_sys.membus.slave
-        elif not args.external_memory_system:
-            test_sys.iobridge = Bridge(delay='50ns', ranges = test_sys.mem_ranges)
-            test_sys.iobridge.slave = test_sys.iobus.master
-            test_sys.iobridge.master = test_sys.membus.slave
-
-        # Sanity check
-        if args.simpoint_profile:
-            if not ObjectList.is_noncaching_cpu(TestCPUClass):
-                fatal("SimPoint generation should be done with atomic cpu")
-            if np > 1:
-                fatal("SimPoint generation not supported with more than one CPUs")
-
-        for i in range(np):
-            if args.simpoint_profile:
-                test_sys.cpu[i].addSimPointProbe(args.simpoint_interval)
-            if args.checker:
-                test_sys.cpu[i].addCheckerCpu()
-            if not ObjectList.is_kvm_cpu(TestCPUClass):
-                if args.bp_type:
-                    bpClass = ObjectList.bp_list.get(args.bp_type)
-                    test_sys.cpu[i].branchPred = bpClass()
-                if args.indirect_bp_type:
-                    IndirectBPClass = ObjectList.indirect_bp_list.get(
-                        args.indirect_bp_type)
-                    test_sys.cpu[i].branchPred.indirectBranchPred = \
-                        IndirectBPClass()
-            test_sys.cpu[i].createThreads()
-
-        # If elastic tracing is enabled when not restoring from checkpoint and
-        # when not fast forwarding using the atomic cpu, then check that the
-        # TestCPUClass is DerivO3CPU or inherits from DerivO3CPU. If the check
-        # passes then attach the elastic trace probe.
-        # If restoring from checkpoint or fast forwarding, the code that does this for
-        # FutureCPUClass is in the Simulation module. If the check passes then the
-        # elastic trace probe is attached to the switch CPUs.
-        if args.elastic_trace_en and args.checkpoint_restore == None and \
-            not args.fast_forward:
-            CpuConfig.config_etrace(TestCPUClass, test_sys.cpu, args)
-
-        CacheConfig.config_cache(args, test_sys)
-
-        MemConfig.config_mem(args, test_sys)
-
-    if ObjectList.is_kvm_cpu(TestCPUClass) or \
-        ObjectList.is_kvm_cpu(FutureClass):
-        # Assign KVM CPUs to their own event queues / threads. This
-        # has to be done after creating caches and other child objects
-        # since these mustn't inherit the CPU event queue.
-        for i,cpu in enumerate(test_sys.cpu):
-            # Child objects usually inherit the parent's event
-            # queue. Override that and use the same event queue for
-            # all devices.
-            for obj in cpu.descendants():
-                obj.eventq_index = 0
-            cpu.eventq_index = i + 1
-        test_sys.kvm_vm = KvmVM()
+    CacheConfig.config_cache(args, test_sys)
+    MemConfig.config_fspim_mem(args, test_sys)
 
     return test_sys
 
@@ -246,16 +145,9 @@ def build_drive_system(np):
     DriveMemClass = SimpleMemory
 
     cmdline = cmd_line_template()
-    if buildEnv['TARGET_ISA'] == 'mips':
-        drive_sys = makeLinuxMipsSystem(drive_mem_mode, bm[1], cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == 'sparc':
-        drive_sys = makeSparcSystem(drive_mem_mode, bm[1], cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == 'x86':
+    if buildEnv['TARGET_ISA'] == 'x86':
         drive_sys = makeLinuxX86System(drive_mem_mode, np, bm[1],
                                        cmdline=cmdline)
-    elif buildEnv['TARGET_ISA'] == 'arm':
-        drive_sys = makeArmSystem(drive_mem_mode, args.machine_type, np,
-                                  bm[1], args.dtb_filename, cmdline=cmdline)
 
     # Create a top-level voltage domain
     drive_sys.voltage_domain = VoltageDomain(voltage = args.sys_voltage)
@@ -280,9 +172,6 @@ def build_drive_system(np):
     if args.kernel is not None:
         drive_sys.workload.object_file = binary(args.kernel)
 
-    if ObjectList.is_kvm_cpu(DriveCPUClass):
-        drive_sys.kvm_vm = KvmVM()
-
     drive_sys.iobridge = Bridge(delay='50ns',
                                 ranges = drive_sys.mem_ranges)
     drive_sys.iobridge.slave = drive_sys.iobus.master
@@ -304,18 +193,15 @@ parser = argparse.ArgumentParser()
 Options.addCommonOptions(parser)
 Options.addFSOptions(parser)
 
-# Add the ruby specific and protocol specific args
-if '--ruby' in sys.argv:
-    Ruby.define_options(parser)
-
 # Add the PIM specific options
 PIM.define_options(parser)
 
 args = parser.parse_args()
 
 # system under test can be any CPU
+numThreads = 2
 (TestCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(args)
-
+TestCPUClass.numThreads = numThreads
 # Match the memories with the CPUs, based on the options for the test system
 TestMemClass = Simulation.setMemClass(args)
 
@@ -371,6 +257,9 @@ else:
     print("Error I don't know how to create more than 2 systems.")
     sys.exit(1)
 
+if numThreads > 1:
+    test_sys.multi_thread = True
+
 # if args.pim_baremetal or args.pim_se:
 #     root.pim_system = PIM.build_pim_system(args)
 #     PIM.connect_to_host_system(args, test_sys, root.pim_system)
@@ -383,6 +272,12 @@ if args.pim_baremetal:
     root.pim_system = PIM.build_pim_system(args, 0)
     PIM.connect_to_host_system(args, test_sys, root.pim_system)
 
+if buildEnv['TARGET_ISA'] == 'x86':
+    for i in range(numThreads - 1):
+        test_sys.cpu[0].interrupts[i+1].pio = test_sys.membus.mem_side_ports
+        test_sys.cpu[0].interrupts[i+1].int_requestor = test_sys.membus.cpu_side_ports
+        test_sys.cpu[0].interrupts[i+1].int_responder = test_sys.membus.mem_side_ports
+
 if args.pim_se:
     root.pim_stack_num = pim_stack_num
     root.multiple_se_system = True if int(root.pim_stack_num) > 1 else False
@@ -392,43 +287,10 @@ if args.pim_se:
         PIM.connect_to_host_system(args, test_sys, root.pim_system, 0)
         root.se_mode_system_name = root.pim_system.get_name()
     else:
-        root.pim_system = [PIM.build_pim_system(args, i)
-                                for i in range(root.pim_stack_num)]
+        root.pim_system = [PIM.build_pim_system(args, i) for i in range(root.pim_stack_num)]
         for p, pim_sys in enumerate(root.pim_system):
             PIM.connect_to_host_system(args, test_sys, pim_sys, p)
-        root.se_mode_systems_name = [pim_sys.get_name()
-                                        for pim_sys in root.pim_system]
-
-if ObjectList.is_kvm_cpu(TestCPUClass) or \
-    ObjectList.is_kvm_cpu(FutureClass):
-    # Required for running kvm on multiple host cores.
-    # Uses gem5's parallel event queue feature
-    # Note: The simulator is quite picky about this number!
-    root.sim_quantum = int(1e9) # 1 ms
-
-if args.timesync:
-    root.time_sync_enable = True
-
-if args.frame_capture:
-    VncServer.frame_capture = True
-
-if buildEnv['TARGET_ISA'] == "arm" and not args.bare_metal \
-        and not args.dtb_filename:
-    if args.machine_type not in ["VExpress_GEM5",
-                                    "VExpress_GEM5_V1",
-                                    "VExpress_GEM5_V2",
-                                    "VExpress_GEM5_Foundation"]:
-        warn("Can only correctly generate a dtb for VExpress_GEM5_* " \
-             "platforms, unless custom hardware models have been equipped "\
-             "with generation functionality.")
-
-    # Generate a Device Tree
-    for sysname in ('system', 'testsys', 'drivesys'):
-        if hasattr(root, sysname):
-            sys = getattr(root, sysname)
-            sys.workload.dtb_filename = \
-                os.path.join(m5.options.outdir, '%s.dtb' % sysname)
-            sys.generateDtb(sys.workload.dtb_filename)
+        root.se_mode_systems_name = [pim_sys.get_name() for pim_sys in root.pim_system]
 
 Simulation.setWorkCountOptions(test_sys, args)
 Simulation.run(args, root, test_sys, FutureClass)

@@ -5,6 +5,7 @@
 #include "cpu/base.hh"
 #include "cpu/thread_context.hh"
 #include "sim/system.hh"
+
 namespace gem5
 {
 
@@ -13,9 +14,16 @@ semodesystem::belongSEsys(const System *const _system)
 {
     assert(_system);
 
-    if (_system->name() == SEModeSystemName)
-        return true;
-
+    if (!MultipleSESystem) {
+        if (_system->name() == SEModeSystemName)
+            return true;
+    } else {
+        /* multistack PIM */
+        for (int i=0; i<SEModeSystemsName.size(); i++){
+            if (_system->name() == SEModeSystemsName[i])
+                return true;
+        }
+    }
     return false;
 }
 
