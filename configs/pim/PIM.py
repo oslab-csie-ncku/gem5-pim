@@ -283,6 +283,7 @@ def build_pim_system(options):
             process.errout = options.pim_se_errout
 
         self.cpu.workload = [process]
+        self.workload = SEWorkload.init_compatible(options.pim_kernel)
 
     return self
 
