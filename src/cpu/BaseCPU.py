@@ -188,13 +188,13 @@ class BaseCPU(ClockedObject):
 
     def connectCachedPorts(self, bus):
         for p in self._cached_ports:
-            exec('self.%s = bus.slave' % p)
+            exec('self.%s = bus.cpu_side_ports' % p)
 
     def connectUncachedPorts(self, bus):
         for p in self._uncached_interrupt_response_ports:
-            exec('self.%s = bus.master' % p)
+            exec('self.%s = bus.mem_side_ports' % p)
         for p in self._uncached_interrupt_request_ports:
-            exec('self.%s = bus.slave' % p)
+            exec('self.%s = bus.cpu_side_ports' % p)
 
     def connectAllPorts(self, cached_bus, uncached_bus = None):
         self.connectCachedPorts(cached_bus)
@@ -210,6 +210,7 @@ class BaseCPU(ClockedObject):
         self._cached_ports = ['icache.mem_side', 'dcache.mem_side']
         if buildEnv['TARGET_ISA'] in ['x86', 'arm', 'riscv']:
             if iwc and dwc:
+                print("iwc and dwc true")
                 self.itb_walker_cache = iwc
                 self.dtb_walker_cache = dwc
                 self.mmu.connectWalkerPorts(
