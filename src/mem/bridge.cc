@@ -50,6 +50,7 @@
 #include "debug/Bridge.hh"
 #include "mem/scratchpad_mem.hh"
 #include "params/Bridge.hh"
+#include "sim/se_mode_system.hh"
 #include "sim/system.hh"
 
 namespace gem5
@@ -113,14 +114,36 @@ Bridge::init()
     // notify the request side  of our address ranges
     cpuSidePort.sendRangeChange();
 
+    if (semodesystem::MemStackNum == 1) {
+        // Get PIM system SimObject
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+        fatal_if(!_pimSystem, "Bridge : Cannot find SimObject pim_system");
+
+        // Get PIM SPM
+        pimSpm = dynamic_cast<memory::ScratchpadMemory *>
+                (SimObject::find("pim_system.spm"));
+        fatal_if(!pimSpm, "Bridge : Cannot find SimObject pim_system.spm");
+    } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
+        // Get PIM system SimObject
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+        fatal_if(!_pimSystem, "Bridge : Cannot find SimObject pim_system");
+
+        // Get PIM SPM
+        for (int i=0; i<semodesystem::MemStackNum; i++) {
+            std::string systemname = semodesystem::SEModeSystemsName[i];
+            pimSpms.push_back(dynamic_cast<memory::ScratchpadMemory *>
+                (SimObject::find(strcat(&systemname[0], ".spm"))));
+        }
+        fatal_if((!pimSpms.size()), "Bridge : Cannot find SimObject pim_system spm");
+    }
     // get PIM system SimObject
-    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
-    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
 
     // get PIM SPM
-    pimSpm = dynamic_cast<memory::ScratchpadMemory *>
-             (SimObject::find("pim_system.spm"));
-    fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
+    // pimSpm = dynamic_cast<memory::ScratchpadMemory *>
+    //          (SimObject::find("pim_system0.spm"));
+    // fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
 }
 
 bool
@@ -133,10 +156,20 @@ Bridge::pktFromPIM(PacketPtr pkt) const
 bool
 Bridge::pktToPimSpm(PacketPtr pkt) const
 {
-    if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
-        return true;
-    else
-        return false;
+    // if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+    //     return true;
+    // else
+    //     return false;
+    if (semodesystem::MemStackNum == 1) {
+        if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+            return true;
+    } else if (semodesystem::MemStackNum > 1) {
+        for (int i=0; i<pimSpms.size(); i++) {
+            if (pkt->getAddrRange().isSubset(pimSpms[i]->getAddrRange()))
+                return true;
+        }
+    }
+    return false;
 }
 
 bool

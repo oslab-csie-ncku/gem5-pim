@@ -47,6 +47,7 @@
 #include "debug/NVM.hh"
 #include "debug/QOS.hh"
 #include "mem/mem_interface.hh"
+#include "sim/se_mode_system.hh"
 #include "sim/system.hh"
 
 namespace gem5
@@ -108,8 +109,17 @@ MemCtrl::init()
         port.sendRangeChange();
     }
     // Get PIM system SimObject
-    _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
-    fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+
+    // Get PIM system SimObject
+    if (semodesystem::MemStackNum == 1) {
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
+        fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
+    } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
+        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+        fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
+    }
 }
 
 void

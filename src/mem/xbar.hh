@@ -412,6 +412,8 @@ class BaseXBar : public ClockedObject
   private:
     System *_pimSystem;
     memory::ScratchpadMemory *pimSpm;
+    /* multistack PIM */
+    std::vector <memory::ScratchpadMemory *> pimSpms;
 
   public:
 

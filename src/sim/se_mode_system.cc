@@ -13,8 +13,16 @@ semodesystem::belongSEsys(const System *const _system)
 {
     assert(_system);
 
-    if (_system->name() == SEModeSystemName)
-        return true;
+    if (MemStackNum == 1) {
+        if (_system->name() == SEModeSystemName)
+            return true;
+    } else if (MemStackNum > 1){
+        /* multistack PIM */
+        for (int i=0; i<SEModeSystemsName.size(); i++){
+            if (_system->name() == SEModeSystemsName[i])
+                return true;
+        }
+    }
 
     return false;
 }

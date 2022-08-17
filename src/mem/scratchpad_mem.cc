@@ -128,6 +128,7 @@ Tick
 ScratchpadMemory::recvAtomic(PacketPtr pkt)
 {
     needFlush(pkt);
+    DPRINTF(ScratchpadMemory, "\tscratchpad : %p\n",pkt->getAddr());
     return SimpleMemory::recvAtomic(pkt);
 }
 
@@ -135,6 +136,7 @@ Tick
 ScratchpadMemory::recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &_backdoor)
 {
     needFlush(pkt);
+    DPRINTF(ScratchpadMemory, "\tscratchpad : %p\n",pkt->getAddr());
     return SimpleMemory::recvAtomicBackdoor(pkt, _backdoor);
 }
 
@@ -142,6 +144,7 @@ void
 ScratchpadMemory::recvFunctional(PacketPtr pkt)
 {
     needFlush(pkt);
+    DPRINTF(ScratchpadMemory, "\tscratchpad : %p\n",pkt->getAddr());
     SimpleMemory::recvFunctional(pkt);
 }
 
@@ -149,6 +152,7 @@ bool
 ScratchpadMemory::recvTimingReq(PacketPtr pkt)
 {
     needFlush(pkt);
+    DPRINTF(ScratchpadMemory, "\tscratchpad : %p\n",pkt->getAddr());
     return SimpleMemory::recvTimingReq(pkt);
 }
 

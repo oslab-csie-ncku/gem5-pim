@@ -57,7 +57,10 @@ namespace gem5
 Root *Root::_root = NULL;
 
 namespace semodesystem {
-std::string SEModeSystemName = "";
+    std::string SEModeSystemName = "";
+    /* multistack pim */
+    int MemStackNum = 0;
+    std::vector<std::string> SEModeSystemsName;
 };
 
 Root::RootStats Root::RootStats::instance;
@@ -212,7 +215,17 @@ void
 Root::serialize(CheckpointOut &cp) const
 {
     SERIALIZE_SCALAR(FullSystem);
-    SERIALIZE_SCALAR(semodesystem::SEModeSystemName);
+    if (semodesystem::MemStackNum == 1) {
+        SERIALIZE_SCALAR(semodesystem::SEModeSystemName);
+    }
+    else if (semodesystem::MemStackNum > 1) {
+        /* multistack PIM */
+        /* GC TODO: serialize multiple se mode system */
+        for (int i=0; i<semodesystem::MemStackNum; i++) {
+            SERIALIZE_SCALAR(semodesystem::SEModeSystemsName[i]);
+        }
+        warn("use multistack PIM system : checkpoint serialize");
+    }
     std::string isa = THE_ISA_STR;
     SERIALIZE_SCALAR(isa);
 
@@ -242,13 +255,25 @@ RootParams::create() const
     FullSystem = full_system;
     FullSystemInt = full_system ? 1 : 0;
     
-    if (FullSystem) {
+    // if (FullSystem) {
+    semodesystem::MemStackNum = pim_stack_num;
+    std::cout << semodesystem::MemStackNum << std::endl;
+    if (semodesystem::MemStackNum == 1) {
         semodesystem::SEModeSystemName = se_mode_system_name;
-    } else {
-        if (se_mode_system_name != "")
-            warn("Since the simulation is in pure SE mode, " \
-                 "se_mode_system_name variable will be ignored");
+    } else if (semodesystem::MemStackNum > 1) {
+        /* multistack PIM */
+        semodesystem::SEModeSystemName = se_mode_systems_name[0];
+        for (int i=0; i<pim_stack_num; i++) {
+            semodesystem::SEModeSystemsName.push_back(se_mode_systems_name[i]);
+        }
     }
+    // } else {
+    //     if (se_mode_system_name != "")
+    //         warn("Since the simulation is in pure SE mode, " \
+    //              "se_mode_system_name variable will be ignored");
+    //     /* multistack PIM? */
+    //     /* GC TODO: check this branch */
+    // }
 
     return new Root(*this, 0);
 }
