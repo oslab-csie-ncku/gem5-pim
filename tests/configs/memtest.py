@@ -60,9 +60,9 @@ for cpu in cpus:
     cpu.clk_domain = system.cpu_clk_domain
     cpu.l1c = L1Cache(size = '32kB', assoc = 4)
     cpu.l1c.cpu_side = cpu.port
-    cpu.l1c.mem_side = system.toL2Bus.slave
+    cpu.l1c.mem_side = system.toL2Bus.cpu_side_ports
 
-system.system_port = system.membus.slave
+system.system_port = system.membus.cpu_side_ports
 
 # connect memory to membus
 system.physmem.port = system.membus.master

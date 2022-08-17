@@ -121,7 +121,7 @@ def makeSparcSystem(mem_mode, mdesc=None, cmdline=None):
     self.mem_ranges = [AddrRange(Addr('1MB'), size = '64MB'),
                        AddrRange(Addr('2GB'), size ='256MB')]
     self.bridge.master = self.iobus.slave
-    self.bridge.slave = self.membus.master
+    self.bridge.slave = self.membus.mem_side_ports
     self.disk0 = CowMmDisk()
     self.disk0.childImage(mdesc.disks()[0])
     self.disk0.pio = self.iobus.master
@@ -160,10 +160,10 @@ def makeSparcSystem(mem_mode, mdesc=None, cmdline=None):
     self.partition_desc = SimpleMemory(image_file=binary('1up-md.bin'),
             range=AddrRange(0x1f12000000, size='8kB'))
 
-    self.rom.port = self.membus.master
-    self.nvram.port = self.membus.master
-    self.hypervisor_desc.port = self.membus.master
-    self.partition_desc.port = self.membus.master
+    self.rom.port = self.membus.mem_side_ports
+    self.nvram.port = self.membus.mem_side_ports
+    self.hypervisor_desc.port = self.membus.mem_side_ports
+    self.partition_desc.port = self.membus.mem_side_ports
 
     self.system_port = self.membus.slave
 
@@ -192,7 +192,7 @@ def makeArmSystem(mem_mode, machine_type, num_cpus=1, mdesc=None,
         self.bridge.master = self.iobus.slave
         self.membus = MemBus()
         self.membus.badaddr_responder.warn_access = "warn"
-        self.bridge.slave = self.membus.master
+        self.bridge.slave = self.membus.mem_side_ports
 
     self.mem_mode = mem_mode
 
@@ -365,7 +365,7 @@ def makeLinuxMipsSystem(mem_mode, mdesc=None, cmdline=None):
     self.bridge = Bridge(delay='50ns')
     self.mem_ranges = [AddrRange('1GB')]
     self.bridge.master = self.iobus.slave
-    self.bridge.slave = self.membus.master
+    self.bridge.slave = self.membus.mem_side_ports
     self.disks = makeCowDisks(mdesc.disks())
     self.malta = BaseMalta()
     self.malta.attachIO(self.iobus)
@@ -403,7 +403,7 @@ def connectX86ClassicSystem(x86_sys, numCPUs):
     x86_sys.iobus = IOXBar()
     x86_sys.bridge = Bridge(delay='50ns')
     x86_sys.bridge.master = x86_sys.iobus.slave
-    x86_sys.bridge.slave = x86_sys.membus.master
+    x86_sys.bridge.slave = x86_sys.membus.mem_side_ports
     # Allow the bridge to pass through:
     #  1) kernel configured PCI device memory map address: address range
     #     [0xC0000000, 0xFFFF0000). (The upper 64kB are reserved for m5ops.)
@@ -651,7 +651,7 @@ def makeBareMetalRiscvSystem(mem_mode, mdesc=None, cmdline=None):
 
     self.bridge = Bridge(delay='50ns')
     self.bridge.master = self.iobus.slave
-    self.bridge.slave = self.membus.master
+    self.bridge.slave = self.membus.mem_side_ports
     # Sv39 has 56 bit physical addresses; use the upper 8 bit for the IO space
     IO_address_space_base = 0x00FF000000000000
     self.bridge.ranges = [AddrRange(IO_address_space_base, Addr.max)]

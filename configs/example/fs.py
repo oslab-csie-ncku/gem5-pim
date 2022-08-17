@@ -289,7 +289,7 @@ def build_drive_system(np):
     drive_sys.mem_ctrls = [DriveMemClass(range = r)
                            for r in drive_sys.mem_ranges]
     for i in range(len(drive_sys.mem_ctrls)):
-        drive_sys.mem_ctrls[i].port = drive_sys.membus.master
+        drive_sys.mem_ctrls[i].port = drive_sys.membus.mem_side_ports
 
     drive_sys.init_param = args.init_param
 
