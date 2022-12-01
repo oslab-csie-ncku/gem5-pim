@@ -1,0 +1,336 @@
+Usage: compile_gem5 ARCH BINARY_TYPE BUILD_VARIABLES
+scons: Reading SConscript files ...
+Error: No non-leaf 'build' dir found on target path.
+       /home/johnnylab/work/gem5-multistackPIM/build/gem5.
+Global frequency set at 1000000000000 ticks per second
+      0: system.pc.south_bridge.cmos.rtc: Real-time clock set to Sun Jan  1 00:00:00 2012
+      0: pim_system0.se_mem_ctrl: list of all the memory requesters:
+      0: pim_system0.se_mem_ctrl: 	0: .writebacks
+      0: pim_system0.se_mem_ctrl: 	1: .functional
+      0: pim_system0.se_mem_ctrl: 	2: .interrupt
+      0: pim_system0.se_mem_ctrl: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system0.se_mem_ctrl: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system0.se_mem_ctrl: 	5: pim_system0.cpu.inst
+      0: pim_system0.se_mem_ctrl: 	6: pim_system0.cpu.data
+      0: pim_system0.se_mem_ctrl: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system0.se_mem_ctrl: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system0.se_mem_ctrl: 	9: pim_system1.cpu.inst
+      0: pim_system0.se_mem_ctrl: 	10: pim_system1.cpu.data
+      0: pim_system0.se_mem_ctrl: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system0.se_mem_ctrl: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system0.se_mem_ctrl: 	13: pim_system2.cpu.inst
+      0: pim_system0.se_mem_ctrl: 	14: pim_system2.cpu.data
+      0: pim_system0.se_mem_ctrl: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system0.se_mem_ctrl: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system0.se_mem_ctrl: 	17: pim_system3.cpu.inst
+      0: pim_system0.se_mem_ctrl: 	18: pim_system3.cpu.data
+      0: pim_system0.se_mem_ctrl: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system0.se_mem_ctrl: 	20: system.cpu.mmu.itb.walker
+      0: pim_system0.se_mem_ctrl: 	21: system.cpu.inst
+      0: pim_system0.se_mem_ctrl: 	22: system.cpu.data
+      0: pim_system0.se_mem_ctrl: 	23: system.pc.south_bridge.ide
+      0: pim_system0.spm: list of all the system data caches:
+      0: pim_system0.spm: 	system.l2
+      0: pim_system0.spm: 	system.cpu.dcache
+      0: pim_system0.spm: list of all the memory requesters:
+      0: pim_system0.spm: 	0: .writebacks
+      0: pim_system0.spm: 	1: .functional
+      0: pim_system0.spm: 	2: .interrupt
+      0: pim_system0.spm: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system0.spm: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system0.spm: 	5: pim_system0.cpu.inst
+      0: pim_system0.spm: 	6: pim_system0.cpu.data
+      0: pim_system0.spm: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system0.spm: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system0.spm: 	9: pim_system1.cpu.inst
+      0: pim_system0.spm: 	10: pim_system1.cpu.data
+      0: pim_system0.spm: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system0.spm: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system0.spm: 	13: pim_system2.cpu.inst
+      0: pim_system0.spm: 	14: pim_system2.cpu.data
+      0: pim_system0.spm: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system0.spm: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system0.spm: 	17: pim_system3.cpu.inst
+      0: pim_system0.spm: 	18: pim_system3.cpu.data
+      0: pim_system0.spm: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system0.spm: 	20: system.cpu.mmu.itb.walker
+      0: pim_system0.spm: 	21: system.cpu.inst
+      0: pim_system0.spm: 	22: system.cpu.data
+      0: pim_system0.spm: 	23: system.pc.south_bridge.ide
+      0: pim_system1.se_mem_ctrl: list of all the memory requesters:
+      0: pim_system1.se_mem_ctrl: 	0: .writebacks
+      0: pim_system1.se_mem_ctrl: 	1: .functional
+      0: pim_system1.se_mem_ctrl: 	2: .interrupt
+      0: pim_system1.se_mem_ctrl: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system1.se_mem_ctrl: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system1.se_mem_ctrl: 	5: pim_system0.cpu.inst
+      0: pim_system1.se_mem_ctrl: 	6: pim_system0.cpu.data
+      0: pim_system1.se_mem_ctrl: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system1.se_mem_ctrl: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system1.se_mem_ctrl: 	9: pim_system1.cpu.inst
+      0: pim_system1.se_mem_ctrl: 	10: pim_system1.cpu.data
+      0: pim_system1.se_mem_ctrl: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system1.se_mem_ctrl: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system1.se_mem_ctrl: 	13: pim_system2.cpu.inst
+      0: pim_system1.se_mem_ctrl: 	14: pim_system2.cpu.data
+      0: pim_system1.se_mem_ctrl: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system1.se_mem_ctrl: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system1.se_mem_ctrl: 	17: pim_system3.cpu.inst
+      0: pim_system1.se_mem_ctrl: 	18: pim_system3.cpu.data
+      0: pim_system1.se_mem_ctrl: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system1.se_mem_ctrl: 	20: system.cpu.mmu.itb.walker
+      0: pim_system1.se_mem_ctrl: 	21: system.cpu.inst
+      0: pim_system1.se_mem_ctrl: 	22: system.cpu.data
+      0: pim_system1.se_mem_ctrl: 	23: system.pc.south_bridge.ide
+      0: pim_system1.spm: list of all the system data caches:
+      0: pim_system1.spm: 	system.l2
+      0: pim_system1.spm: 	system.cpu.dcache
+      0: pim_system1.spm: list of all the memory requesters:
+      0: pim_system1.spm: 	0: .writebacks
+      0: pim_system1.spm: 	1: .functional
+      0: pim_system1.spm: 	2: .interrupt
+      0: pim_system1.spm: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system1.spm: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system1.spm: 	5: pim_system0.cpu.inst
+      0: pim_system1.spm: 	6: pim_system0.cpu.data
+      0: pim_system1.spm: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system1.spm: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system1.spm: 	9: pim_system1.cpu.inst
+      0: pim_system1.spm: 	10: pim_system1.cpu.data
+      0: pim_system1.spm: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system1.spm: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system1.spm: 	13: pim_system2.cpu.inst
+      0: pim_system1.spm: 	14: pim_system2.cpu.data
+      0: pim_system1.spm: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system1.spm: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system1.spm: 	17: pim_system3.cpu.inst
+      0: pim_system1.spm: 	18: pim_system3.cpu.data
+      0: pim_system1.spm: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system1.spm: 	20: system.cpu.mmu.itb.walker
+      0: pim_system1.spm: 	21: system.cpu.inst
+      0: pim_system1.spm: 	22: system.cpu.data
+      0: pim_system1.spm: 	23: system.pc.south_bridge.ide
+      0: pim_system2.se_mem_ctrl: list of all the memory requesters:
+      0: pim_system2.se_mem_ctrl: 	0: .writebacks
+      0: pim_system2.se_mem_ctrl: 	1: .functional
+      0: pim_system2.se_mem_ctrl: 	2: .interrupt
+      0: pim_system2.se_mem_ctrl: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system2.se_mem_ctrl: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system2.se_mem_ctrl: 	5: pim_system0.cpu.inst
+      0: pim_system2.se_mem_ctrl: 	6: pim_system0.cpu.data
+      0: pim_system2.se_mem_ctrl: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system2.se_mem_ctrl: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system2.se_mem_ctrl: 	9: pim_system1.cpu.inst
+      0: pim_system2.se_mem_ctrl: 	10: pim_system1.cpu.data
+      0: pim_system2.se_mem_ctrl: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system2.se_mem_ctrl: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system2.se_mem_ctrl: 	13: pim_system2.cpu.inst
+      0: pim_system2.se_mem_ctrl: 	14: pim_system2.cpu.data
+      0: pim_system2.se_mem_ctrl: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system2.se_mem_ctrl: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system2.se_mem_ctrl: 	17: pim_system3.cpu.inst
+      0: pim_system2.se_mem_ctrl: 	18: pim_system3.cpu.data
+      0: pim_system2.se_mem_ctrl: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system2.se_mem_ctrl: 	20: system.cpu.mmu.itb.walker
+      0: pim_system2.se_mem_ctrl: 	21: system.cpu.inst
+      0: pim_system2.se_mem_ctrl: 	22: system.cpu.data
+      0: pim_system2.se_mem_ctrl: 	23: system.pc.south_bridge.ide
+      0: pim_system2.spm: list of all the system data caches:
+      0: pim_system2.spm: 	system.l2
+      0: pim_system2.spm: 	system.cpu.dcache
+      0: pim_system2.spm: list of all the memory requesters:
+      0: pim_system2.spm: 	0: .writebacks
+      0: pim_system2.spm: 	1: .functional
+      0: pim_system2.spm: 	2: .interrupt
+      0: pim_system2.spm: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system2.spm: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system2.spm: 	5: pim_system0.cpu.inst
+      0: pim_system2.spm: 	6: pim_system0.cpu.data
+      0: pim_system2.spm: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system2.spm: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system2.spm: 	9: pim_system1.cpu.inst
+      0: pim_system2.spm: 	10: pim_system1.cpu.data
+      0: pim_system2.spm: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system2.spm: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system2.spm: 	13: pim_system2.cpu.inst
+      0: pim_system2.spm: 	14: pim_system2.cpu.data
+      0: pim_system2.spm: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system2.spm: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system2.spm: 	17: pim_system3.cpu.inst
+      0: pim_system2.spm: 	18: pim_system3.cpu.data
+      0: pim_system2.spm: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system2.spm: 	20: system.cpu.mmu.itb.walker
+      0: pim_system2.spm: 	21: system.cpu.inst
+      0: pim_system2.spm: 	22: system.cpu.data
+      0: pim_system2.spm: 	23: system.pc.south_bridge.ide
+      0: pim_system3.se_mem_ctrl: list of all the memory requesters:
+      0: pim_system3.se_mem_ctrl: 	0: .writebacks
+      0: pim_system3.se_mem_ctrl: 	1: .functional
+      0: pim_system3.se_mem_ctrl: 	2: .interrupt
+      0: pim_system3.se_mem_ctrl: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system3.se_mem_ctrl: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system3.se_mem_ctrl: 	5: pim_system0.cpu.inst
+      0: pim_system3.se_mem_ctrl: 	6: pim_system0.cpu.data
+      0: pim_system3.se_mem_ctrl: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system3.se_mem_ctrl: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system3.se_mem_ctrl: 	9: pim_system1.cpu.inst
+      0: pim_system3.se_mem_ctrl: 	10: pim_system1.cpu.data
+      0: pim_system3.se_mem_ctrl: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system3.se_mem_ctrl: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system3.se_mem_ctrl: 	13: pim_system2.cpu.inst
+      0: pim_system3.se_mem_ctrl: 	14: pim_system2.cpu.data
+      0: pim_system3.se_mem_ctrl: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system3.se_mem_ctrl: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system3.se_mem_ctrl: 	17: pim_system3.cpu.inst
+      0: pim_system3.se_mem_ctrl: 	18: pim_system3.cpu.data
+      0: pim_system3.se_mem_ctrl: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system3.se_mem_ctrl: 	20: system.cpu.mmu.itb.walker
+      0: pim_system3.se_mem_ctrl: 	21: system.cpu.inst
+      0: pim_system3.se_mem_ctrl: 	22: system.cpu.data
+      0: pim_system3.se_mem_ctrl: 	23: system.pc.south_bridge.ide
+      0: pim_system3.spm: list of all the system data caches:
+      0: pim_system3.spm: 	system.l2
+      0: pim_system3.spm: 	system.cpu.dcache
+      0: pim_system3.spm: list of all the memory requesters:
+      0: pim_system3.spm: 	0: .writebacks
+      0: pim_system3.spm: 	1: .functional
+      0: pim_system3.spm: 	2: .interrupt
+      0: pim_system3.spm: 	3: pim_system0.cpu.mmu.dtb.walker
+      0: pim_system3.spm: 	4: pim_system0.cpu.mmu.itb.walker
+      0: pim_system3.spm: 	5: pim_system0.cpu.inst
+      0: pim_system3.spm: 	6: pim_system0.cpu.data
+      0: pim_system3.spm: 	7: pim_system1.cpu.mmu.dtb.walker
+      0: pim_system3.spm: 	8: pim_system1.cpu.mmu.itb.walker
+      0: pim_system3.spm: 	9: pim_system1.cpu.inst
+      0: pim_system3.spm: 	10: pim_system1.cpu.data
+      0: pim_system3.spm: 	11: pim_system2.cpu.mmu.dtb.walker
+      0: pim_system3.spm: 	12: pim_system2.cpu.mmu.itb.walker
+      0: pim_system3.spm: 	13: pim_system2.cpu.inst
+      0: pim_system3.spm: 	14: pim_system2.cpu.data
+      0: pim_system3.spm: 	15: pim_system3.cpu.mmu.dtb.walker
+      0: pim_system3.spm: 	16: pim_system3.cpu.mmu.itb.walker
+      0: pim_system3.spm: 	17: pim_system3.cpu.inst
+      0: pim_system3.spm: 	18: pim_system3.cpu.data
+      0: pim_system3.spm: 	19: system.cpu.mmu.dtb.walker
+      0: pim_system3.spm: 	20: system.cpu.mmu.itb.walker
+      0: pim_system3.spm: 	21: system.cpu.inst
+      0: pim_system3.spm: 	22: system.cpu.data
+      0: pim_system3.spm: 	23: system.pc.south_bridge.ide
+gem5 Simulator System.  http://gem5.org
+gem5 is copyrighted software; use the --copyright option for details.
+
+gem5 version 21.1.0.2
+gem5 compiled Nov 28 2022 15:26:50
+gem5 started Nov 30 2022 21:22:07
+gem5 executing on work, pid 26642
+command line: ./build/X86/gem5.opt --outdir=pim_m5out --debug-flags=ScratchpadMemory,PseudoInst ./configs/example/fs_pim.py --num-cpus=1 --cpu-type=AtomicSimpleCPU --cpu-clock=2GHz --caches --l2cache --l1i_size=32kB --l1d_size=32kB --l2_size=1MB --mem-type=DDR4_2400_8x8 --mem-channels=1 --mem-size=16GB --dram-nvm --dram-nvm-type=PCM_LPDDR2_400_8x8 --dram-nvm-start=0x240000000 --dram-nvm-size=8GB --pim-stack-num=4 --pim-se --hybrid-stack --pim-cpu-clock=1.5GHz --pim-bandwidth-ratio=8 --pim-spm-start=0x450000000 --pim-spm-size=4kB --pim-spm-reg-flush-addr=0x450000000 --pim-spm-reg-flush-size=0x450000008 --pim-se-mem-start=0x440000000 --pim-se-mem-size=10MB --pim-kernel=./master_work/pim-kernel/pim-kernel --pim-se-input= --pim-se-output=pim-stdout --pim-se-errout=pim-errout --script=./master_work/workloads/real/ --kernel=x86_64-vmlinux-4.18.0-nova-pohao '--command-line=earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda1 dhash_entries=16 nokaslr norandmaps memmap=8G!9G' --disk-image=/home/johnnylab/work/gem5_disk/x86-ubuntu-14.04.6.img
+
+0
+3221225472
+4294967296
+18253611008
+9663676416
+18253611008
+1
+6
+----------------------------
+2
+3
+7
+----------------------------
+4
+8
+----------------------------
+5
+9
+----------------------------
+0
+----------------------------
+10
+1073741824:2952790016
+9663676416:11811160064
+-----------------------------------
+2952790016:3221225472
+4294967296:5905580032
+11811160064:13958643712
+-----------------------------------
+5905580032:7784628224
+13958643712:16106127360
+-----------------------------------
+7784628224:9663676416
+16106127360:18253611008
+-----------------------------------
+0:1073741824
+-----------------------------------
+<orphan System>.memsubsystem0.mem_ctrls0
+1073741824:2952790016
+<orphan System>.memsubsystem0.mem_ctrls1
+9663676416:11811160064
+<orphan System>.memsubsystem1.mem_ctrls0
+2952790016:3221225472
+<orphan System>.memsubsystem1.mem_ctrls1
+4294967296:5905580032
+<orphan System>.memsubsystem1.mem_ctrls2
+11811160064:13958643712
+<orphan System>.memsubsystem2.mem_ctrls0
+5905580032:7784628224
+<orphan System>.memsubsystem2.mem_ctrls1
+13958643712:16106127360
+<orphan System>.memsubsystem3.mem_ctrls0
+7784628224:9663676416
+<orphan System>.memsubsystem3.mem_ctrls1
+16106127360:18253611008
+<orphan System>.memsubsystem4.mem_ctrls
+0:1073741824
+se_mem_start:18253611008
+spm_start:18522046464
+spm_end:18522050560
+18522046464
+18522046472
+./master_work/pim-kernel/pim-kernel
+./master_work/pim-kernel/pim-kernel-0
+se_mem_start:18264096768
+spm_start:18522050560
+spm_end:18522054656
+18522050560
+18522050568
+./master_work/pim-kernel/pim-kernel
+./master_work/pim-kernel/pim-kernel-1
+se_mem_start:18274582528
+spm_start:18522054656
+spm_end:18522058752
+18522054656
+18522054664
+./master_work/pim-kernel/pim-kernel
+./master_work/pim-kernel/pim-kernel-2
+se_mem_start:18285068288
+spm_start:18522058752
+spm_end:18522062848
+18522058752
+18522058760
+./master_work/pim-kernel/pim-kernel
+./master_work/pim-kernel/pim-kernel-3
+map: 1073741824 <-> 2952790016 ==> 1879048192
+map: 9663676416 <-> 11811160064 ==> 2147483648
+----------------------------------------
+map: 2952790016 <-> 3221225472 ==> 268435456
+map: 4294967296 <-> 5905580032 ==> 1610612736
+map: 11811160064 <-> 13958643712 ==> 2147483648
+----------------------------------------
+map: 5905580032 <-> 7784628224 ==> 1879048192
+map: 13958643712 <-> 16106127360 ==> 2147483648
+----------------------------------------
+map: 7784628224 <-> 9663676416 ==> 1879048192
+map: 16106127360 <-> 18253611008 ==> 2147483648
+----------------------------------------
+**** REAL SIMULATION ****
+955275399: system.pc.com_1.device: attach terminal 0
+8523232659000: global: pseudo_inst::pseudoInst(67)
+8523232659000: global: pseudo_inst::m5checkpoint(0, 0)
+Writing checkpoint
+8530119863000: global: pseudo_inst::pseudoInst(67)
+8530119863000: global: pseudo_inst::m5checkpoint(0, 0)
+Writing checkpoint
+15996564513500: global: pseudo_inst::pseudoInst(33)
+15996564513500: global: pseudo_inst::m5exit(0)
+Exiting @ tick 15996564513500 because m5_exit instruction encountered

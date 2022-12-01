@@ -507,7 +507,11 @@ AtomicSimpleCPU::writeMem(uint8_t *data, unsigned size, Addr addr,
                     threadSnoop(&pkt, curThread);
                 }
                 dcache_access = true;
-                assert(!pkt.isError());
+                if (pkt.isError()) {
+                    printf("fatal error: pkt is error. Addr = %lu", pkt.getAddr());
+                    assert(!pkt.isError());
+                }
+                //assert(!pkt.isError());
 
                 if (req->isSwap()) {
                     assert(res && curr_frag_id == 0);
