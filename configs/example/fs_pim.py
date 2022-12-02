@@ -205,9 +205,9 @@ PIM.define_options(parser)
 args = parser.parse_args()
 
 # system under test can be any CPU
-numThreads = 2
+numThreads = 1
 (TestCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(args)
-TestCPUClass.numThreads = numThreads
+# TestCPUClass.numThreads = numThreads
 # Match the memories with the CPUs, based on the options for the test system
 TestMemClass = Simulation.setMemClass(args)
 
