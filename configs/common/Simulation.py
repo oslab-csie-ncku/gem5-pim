@@ -649,19 +649,26 @@ def run(options, root, testsys, cpu_class):
         # Map SPM address range to SE PIM
         for pim_sys in root.pim_system:
             pim_sys.cpu.workload[0].map(
-                    18522046464, #0x450000000
+                    int(pim_sys.spm.range.start),
                     int(pim_sys.spm.range.start),
                     int(pim_sys.spm.range.size()),
                     False)
             # Map system address range to SE PIM
-            start = int(pim_sys.tohostbridge.ranges[0].start)
-            end = int(pim_sys.tohostbridge.ranges[0].end)
-            print("map : " + str(start) + " <-> " + str(end))
-            pim_sys.cpu.workload[0].map(start, start,
-                                        start-end, False)
-            # for r in testsys.memsubsystem:
-            #     print("map : " + str(r.start) + " <-> " + str(r.end))
-            #     pim_sys.cpu.workload[0].map(int(r.start), int(r.start),
+            for r in pim_sys.tohostbridge.ranges:
+                print('map: ' + str(r.start) + ' <-> ' + str(r.end) + ' ==> ' + str(int(r.end) - int(r.start)))
+                pim_sys.cpu.workload[0].map(int(r.start), int(r.start),
+                                            (int(r.end) - int(r.start)), False)
+                #start = int(pim_sys.tohostbridge.ranges[r].start)
+                #end = int(pim_sys.tohostbridge.ranges[r].end)
+                #print("map : " + str(start) + " <-> " + str(end)) 
+            print('----------------------------------------')
+            #start = int(pim_sys.tohostbridge.ranges[0].start)
+            #end = int(pim_sys.tohostbridge.ranges[0].end)
+            #print("map : " + str(start) + " <-> " + str(end))
+            #start = int(pim_sys.tohostbridge.ranges[1].start)
+            #end = int(pim_sys.tohostbridge.ranges[1].end)
+                #print("map : " + str(mem_ctrls[r].dram.range[0]) + " <-> " + str(mem_ctrls[r].dram.range[1]))
+            #    pim_sys.cpu.workload[0].map(int(r.start), int(r.start),
             #                                         int(r.size()), False)
     # Initialization is complete.  If we're not in control of simulation
     # (that is, if we're a slave simulator acting as a component in another

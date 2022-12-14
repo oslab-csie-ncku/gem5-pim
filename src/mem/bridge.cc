@@ -368,9 +368,8 @@ Bridge::BridgeRequestPort::trySendTiming()
         if (!transmitList.empty()) {
             DeferredPacket next_req = transmitList.front();
             DPRINTF(Bridge, "Scheduling next send\n");
-            // printf("bridge.clockEdge() : %ld curTick:%ld\n", bridge.clockEdge(), curTick());
-            bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(pkt)
-                            || bridge.pktToPimSpm(pkt) ? curTick() :
+            bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(next_req.pkt)
+                            || bridge.pktToPimSpm(next_req.pkt) ? next_req.tick :
                             std::max(next_req.tick, bridge.clockEdge()));
         }
 

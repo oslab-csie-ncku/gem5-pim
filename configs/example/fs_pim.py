@@ -65,10 +65,10 @@ from common.Caches import *
 from common import Options
 
 from pim import PIM
-
+'''
 def is_power_of_2(n):
     return (math.ceil(math.log(n, 2)) == math.floor(math.log(n, 2)))
-
+'''
 def cmd_line_template():
     if args.command_line and args.command_line_file:
         print("Error: --command-line and --command-line-file are "
@@ -133,7 +133,13 @@ def build_test_system(np):
         test_sys.cpu[i].createThreads()
 
     CacheConfig.config_cache(args, test_sys)
-    MemConfig.config_fspim_mem(args, test_sys)
+    #MemConfig.config_fspim_mem(args, test_sys)
+    #'''
+    if args.hybrid_stack:
+        MemConfig.config_fspim_hybridstack_mem(args, test_sys)
+    else:
+        MemConfig.config_fspim_mem(args, test_sys)
+    #'''
 
     return test_sys
 
@@ -199,9 +205,9 @@ PIM.define_options(parser)
 args = parser.parse_args()
 
 # system under test can be any CPU
-numThreads = 2
+numThreads = 1
 (TestCPUClass, test_mem_mode, FutureClass) = Simulation.setCPUClass(args)
-TestCPUClass.numThreads = numThreads
+# TestCPUClass.numThreads = numThreads
 # Match the memories with the CPUs, based on the options for the test system
 TestMemClass = Simulation.setMemClass(args)
 
@@ -229,8 +235,10 @@ if args.pim_stack_num is None:
     fatal("number of pim memory stacks is not set")
 elif args.pim_stack_num is 0:
     fatal("number of pim memory stacks cannot be 0")
+'''
 elif is_power_of_2(args.pim_stack_num) is False:
     fatal("number of pim memory stacks must be in powers of 2")
+'''
 
 pim_stack_num = args.pim_stack_num
 

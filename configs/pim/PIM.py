@@ -69,6 +69,9 @@ def define_options(parser):
     parser.add_argument("--pim-stack-num", action="store", type=int,
                         default="1",
                         help="PIM stack num")
+                        
+    parser.add_argument("--hybrid-stack", action="store_true",
+                        help="DRAM and NVM are on one stack and PIM system attach to this hybrid stack")
 
 ##
 ## PIM Related Class
@@ -258,8 +261,19 @@ def build_pim_system(options, stackId):
     print(self.spm.reg_flush_size)
 
     if options.pim_se:
+        pim_kernel_path = options.pim_kernel
+        if stackId == 0:
+            pim_kernel_path += '-0'
+        elif stackId == 1:
+            pim_kernel_path += '-1'
+        elif stackId == 2:
+            pim_kernel_path += '-2'
+        elif stackId == 3:
+            pim_kernel_path += '-3'
         process = Process(cmd = [options.pim_kernel])
         print(options.pim_kernel)
+        process = Process(cmd = [pim_kernel_path])
+        print(pim_kernel_path)
         if options.pim_se_input != None:
             process.input = options.pim_se_input
         if options.pim_se_output != None:
@@ -268,7 +282,9 @@ def build_pim_system(options, stackId):
             process.errout = options.pim_se_errout
 
         self.cpu.workload = [process]
-        self.workload = SEWorkload.init_compatible(options.pim_kernel)
+        self.workload = SEWorkload.init_compatible(pim_kernel_path)
+        #self.workload = SEWorkload.init_compatible(options.pim_kernel)
+    
     return self
 
 def connect_to_host_system(options, sys, pim_sys, stackId):
@@ -285,11 +301,17 @@ def connect_to_host_system(options, sys, pim_sys, stackId):
     #     fatal("PIM system doesn't has attribute 'pimbus'")
 
     sys.memsubsystem[stackId].topimbridge = PIMBridge(ranges = [pim_sys.spm.range])
-    pim_sys.tohostbridge = PIMBridge(ranges = sys.memsubsystem[stackId].bridge.ranges)
-
+    if options.hybrid_stack:
+        pim_sys.tohostbridge = PIMBridge(ranges = [sys.memsubsystem[stackId].bridge.ranges[i]
+                                for i in range(len(sys.memsubsystem[stackId].bridge.ranges))])
+    else:
+        pim_sys.tohostbridge = PIMBridge(ranges = sys.memsubsystem[stackId].bridge.ranges)
+    #print(str("bridge_length: ") + str(sys.memsubsystem[stackId].bridge.ranges[0]) + "<--->" + str(sys.memsubsystem[stackId].bridge.ranges[1]))
     sys.memsubsystem[stackId].xbar.mem_side_ports = sys.memsubsystem[stackId].topimbridge.cpu_side_port
     sys.memsubsystem[stackId].topimbridge.mem_side_port = pim_sys.pimbus.cpu_side_ports
 
     pim_sys.pimbus.mem_side_ports = pim_sys.tohostbridge.cpu_side_port
     pim_sys.tohostbridge.mem_side_port = sys.memsubsystem[stackId].xbar.cpu_side_ports
+    sys.memsubsystem[stackId].bridge.ranges.append(AddrRange(pim_sys.spm.range.start,
+                                                        size = pim_sys.spm.range.size()))
 
