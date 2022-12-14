@@ -1018,6 +1018,7 @@ class DRAMInterface : public MemInterface
      * We need PIM system SimObject to confirm who the requester is
      */
     System *_pimSystem;
+    std::vector<System *>_pimSystems;
     bool MEMPacketFromPIM(MemPacket *mem_pkt) const;
     std::pair<Tick, Tick>
     doBurstAccess(MemPacket* mem_pkt, Tick next_burst_at,

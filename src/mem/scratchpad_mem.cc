@@ -118,7 +118,7 @@ ScratchpadMemory::needFlush(const PacketPtr pkt) const
 
     const uint64_t *flush_addr = readMem_q(reg_flush_addr);
     assert(flush_addr);
-
+    DPRINTF(ScratchpadMemory, "\tflush %p\n", *flush_addr);
     flushSystemDcaches(*flush_addr, flush_size);
 
     return true;
@@ -128,6 +128,7 @@ Tick
 ScratchpadMemory::recvAtomic(PacketPtr pkt)
 {
     needFlush(pkt);
+    // DPRINTF(ScratchpadMemory, "\tscratchpad : %p (recvAtomic)\n",pkt->getAddr());
     return SimpleMemory::recvAtomic(pkt);
 }
 
@@ -135,6 +136,7 @@ Tick
 ScratchpadMemory::recvAtomicBackdoor(PacketPtr pkt, MemBackdoorPtr &_backdoor)
 {
     needFlush(pkt);
+    // DPRINTF(ScratchpadMemory, "\tscratchpad : %p (recvAtomicBackdoor)\n",pkt->getAddr());
     return SimpleMemory::recvAtomicBackdoor(pkt, _backdoor);
 }
 
@@ -142,6 +144,7 @@ void
 ScratchpadMemory::recvFunctional(PacketPtr pkt)
 {
     needFlush(pkt);
+    // DPRINTF(ScratchpadMemory, "\tscratchpad : %p (recvFunctional)\n",pkt->getAddr());
     SimpleMemory::recvFunctional(pkt);
 }
 
@@ -149,6 +152,7 @@ bool
 ScratchpadMemory::recvTimingReq(PacketPtr pkt)
 {
     needFlush(pkt);
+    // DPRINTF(ScratchpadMemory, "\tscratchpad : %p (recvTimingReq)\n",pkt->getAddr());
     return SimpleMemory::recvTimingReq(pkt);
 }
 

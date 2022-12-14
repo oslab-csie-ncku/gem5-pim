@@ -510,6 +510,7 @@ class MemCtrl : public qos::MemCtrl
      * We need PIM system SimObject to confirm who the requester is
      */
     System *_pimSystem;
+    std::vector<System *>_pimSystems;
     bool pktFromPIM(PacketPtr pkt) const;
     bool MEMPacketFromPIM(MemPacket *mem_pkt) const;
 
