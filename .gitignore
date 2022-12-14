@@ -31,7 +31,9 @@ m5out
 configs/example/memcheck.cfg
 configs/dram/lowp_sweep.cfg
 .pyenv
-pim_m5out
+pim_m5out/
+pim_m5out/stats.txt
 master_work/scripts/
 master_work/gem5_images
+sepim_work/
 .vscode

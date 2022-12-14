@@ -664,13 +664,7 @@ def run(options, root, testsys, cpu_class):
                                         int(options.dram_nvm_start, 16),
                                         convert.toMemorySize(options.dram_nvm_size),
                                         False)
-            # for r in testsys.mem_ranges:
-            #     pim_sys.cpu.workload[0].map(int(r.start), int(r.start),
-            #                                     int(r.size()), False)
 
-            # pim_sys.cpu.workload[0].map(0, int(options.pim_se_mem_start, 16),
-            #                             convert.toMemorySize(options.pim_se_mem_size),
-            #                             False)
             for i in range(np):
                 testsys.cpu[i].workload[0].map(
                     int(pim_sys.spm.range.start),

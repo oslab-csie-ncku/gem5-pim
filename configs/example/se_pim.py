@@ -48,7 +48,7 @@ import m5
 from m5.defines import buildEnv
 from m5.objects import *
 from m5.params import NULL
-from m5.util import addToPath, fatal, warn
+from m5.util import addToPath, fatal, warn, convert
 
 addToPath('../')
 
@@ -74,8 +74,13 @@ def get_processes(args):
     outputs = []
     errouts = []
     pargs = []
+    workloads = []
 
-    workloads = args.cmd.split(';')
+    # workloads = args.cmd.split(';')
+    np = args.num_cpus
+    for n in range(np):
+        workloads.append(args.cmd + str(n))
+
     if args.input != "":
         inputs = args.input.split(';')
     if args.output != "":
@@ -156,6 +161,7 @@ if args.bench:
 elif args.cmd:
     print("get processes")
     multiprocesses, numThreads = get_processes(args)
+    print(multiprocesses)
 else:
     print("No workload specified. Exiting!\n", file=sys.stderr)
     sys.exit(1)
@@ -228,10 +234,14 @@ system.workload = SEWorkload.init_compatible(mp0_path)
 if args.wait_gdb:
     system.workload.wait_for_remote_gdb = True
 
+# nvm is not included in system memory ranges
+# mem_size = convert.toMemorySize(args.mem_size) - convert.toMemorySize(args.dram_nvm_size)
+# system.mem_ranges = [AddrRange(mem_size)]
+
 if args.pim_se:
     root.pim_stack_num = int(pim_num)
     # multistack pim
-    root.pim_system = [PIM.build_pim_system(args, i) for i in range(pim_num) ]
+    root.pim_system = [PIM.build_pim_system(args, i) for i in range(pim_num)]
     for i, pim_sys in enumerate(root.pim_system):
         PIM.connect_to_host_system(args, system, pim_sys, i)
 

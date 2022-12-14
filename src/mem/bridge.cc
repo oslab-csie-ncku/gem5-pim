@@ -124,42 +124,40 @@ Bridge::init()
                 (SimObject::find("pim_system.spm"));
         fatal_if(!pimSpm, "Bridge : Cannot find SimObject pim_system.spm");
     } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
-        // Get PIM system SimObject
-        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-        fatal_if(!_pimSystem, "Bridge : Cannot find SimObject pim_system");
-
-        // Get PIM SPM
         for (int i=0; i<semodesystem::MemStackNum; i++) {
-            std::string systemname = semodesystem::SEModeSystemsName[i];
+            std::string systemname = semodesystem::SEModeSystemsName[i];  
+            // Get PIM system SimObject          
+            _pimSystems.push_back(dynamic_cast<System *>
+                (SimObject::find(&systemname[0])));
+            // Get PIM SPM
             pimSpms.push_back(dynamic_cast<memory::ScratchpadMemory *>
                 (SimObject::find(strcat(&systemname[0], ".spm"))));
         }
         fatal_if((!pimSpms.size()), "Bridge : Cannot find SimObject pim_system spm");
+        fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
     }
-    // get PIM system SimObject
-    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
-
-    // get PIM SPM
-    // pimSpm = dynamic_cast<memory::ScratchpadMemory *>
-    //          (SimObject::find("pim_system0.spm"));
-    // fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
 }
 
 bool
 Bridge::pktFromPIM(PacketPtr pkt) const
 {
-    std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
-    return startswith(_masterName, _pimSystem->name()) ? true : false;
+    std::string _masterName;
+    if (semodesystem::MemStackNum == 1) {
+        _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+        return startswith(_masterName, _pimSystem->name()) ? true : false;
+    } else if (semodesystem::MemStackNum > 1) {
+        for (int i=0; i<_pimSystems.size(); i++) {
+            _masterName = _pimSystems[i]->getRequestorName(pkt->requestorId());
+            if(startswith(_masterName, _pimSystems[i]->name()))
+                return true;
+        }
+    }
+    return false;
 }
 
 bool
 Bridge::pktToPimSpm(PacketPtr pkt) const
 {
-    // if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
-    //     return true;
-    // else
-    //     return false;
     if (semodesystem::MemStackNum == 1) {
         if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
             return true;
@@ -297,8 +295,10 @@ Bridge::BridgeResponsePort::retryStalledReq()
 void
 Bridge::BridgeRequestPort::schedTimingReq(PacketPtr pkt, Tick when)
 {
-    if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt))
+    if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt)) {
+        // warn("%d %d %d", bridge.ideal, bridge.pktFromPIM(pkt), bridge.pktToPimSpm(pkt));
         when = curTick();
+    }
     // If we're about to put this packet at the head of the queue, we
     // need to schedule an event to do the transmit.  Otherwise there
     // should already be an event scheduled for sending the head
@@ -316,8 +316,10 @@ Bridge::BridgeRequestPort::schedTimingReq(PacketPtr pkt, Tick when)
 void
 Bridge::BridgeResponsePort::schedTimingResp(PacketPtr pkt, Tick when)
 {
-    if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt))
+    if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt)) {
+        // warn("%d %d %d", bridge.ideal, bridge.pktFromPIM(pkt), bridge.pktToPimSpm(pkt));
         when = curTick();
+    }
     // If we're about to put this packet at the head of the queue, we
     // need to schedule an event to do the transmit.  Otherwise there
     // should already be an event scheduled for sending the head
@@ -352,8 +354,9 @@ Bridge::BridgeRequestPort::trySendTiming()
         if (!transmitList.empty()) {
             DeferredPacket next_req = transmitList.front();
             DPRINTF(Bridge, "Scheduling next send\n");
+            // printf("bridge.clockEdge() : %ld curTick:%ld\n", bridge.clockEdge(), curTick());
             bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(pkt)
-                            || bridge.pktToPimSpm(pkt) ? next_req.tick :
+                            || bridge.pktToPimSpm(pkt) ? curTick() :
                             std::max(next_req.tick, bridge.clockEdge()));
         }
 

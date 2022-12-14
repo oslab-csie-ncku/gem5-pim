@@ -469,10 +469,22 @@ DRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
 bool
 DRAMInterface::MEMPacketFromPIM(MemPacket *mem_pkt) const
 {
-    std::string _masterName =
-    _pimSystem->getRequestorName(mem_pkt->requestorId());
-    
-    return startswith(_masterName, _pimSystem->name()) ? true : false;
+    // std::string _masterName =
+    // _pimSystem->getRequestorName(mem_pkt->requestorId());
+    // return startswith(_masterName, _pimSystem->name()) ? true : false;
+    std::string _masterName;
+    if (semodesystem::MemStackNum == 1) {
+        _masterName = _pimSystem->getRequestorName(mem_pkt->requestorId());
+        return startswith(_masterName, _pimSystem->name()) ? true : false;
+    } else if (semodesystem::MemStackNum > 1) {
+        for (int i=0; i<_pimSystems.size(); i++) {
+            _masterName = _pimSystems[i]->getRequestorName(mem_pkt->requestorId());
+            if(startswith(_masterName, _pimSystems[i]->name()))
+                return true;
+        }
+    }
+    return false;
+
 }
 
 std::pair<Tick, Tick>
@@ -928,8 +940,12 @@ DRAMInterface::init()
         _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
         fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
     } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
-        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-        fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
+        for (int i=0; i<semodesystem::MemStackNum; i++) {
+            std::string systemname = semodesystem::SEModeSystemsName[i];            
+            _pimSystems.push_back(dynamic_cast<System *>
+                (SimObject::find(&systemname[0])));
+        }
+        fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
     }
     // a bit of sanity checks on the interleaving, save it for here to
     // ensure that the system pointer is initialised

@@ -283,7 +283,7 @@ X86ISA::Interrupts::setThreadContext(ThreadContext *_tc)
 
     BaseInterrupts::setThreadContext(_tc);
 
-    initialApicId = tc->cpuId() + tc->threadId();
+    initialApicId = tc->cpuId();
     regs[APIC_ID] = (initialApicId << 24);
     pioAddr = x86LocalAPICAddress(initialApicId, 0);
 }

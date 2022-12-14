@@ -100,18 +100,18 @@ BaseXBar::init()
         pimSpm = dynamic_cast<memory::ScratchpadMemory *>
                 (SimObject::find("pim_system.spm"));
         fatal_if(!pimSpm, "Xbar : Cannot find SimObject pim_system.spm");
-    } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
-        // Get PIM system SimObject
-        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-        fatal_if(!_pimSystem, "Xbar : Cannot find SimObject pim_system");
-
-        // Get PIM SPM
+    } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */        
         for (int i=0; i<semodesystem::MemStackNum; i++) {
             std::string systemname = semodesystem::SEModeSystemsName[i];
+            // Get PIM system SimObject          
+            _pimSystems.push_back(dynamic_cast<System *>
+                (SimObject::find(&systemname[0])));
+            // Get PIM SPM
             pimSpms.push_back(dynamic_cast<memory::ScratchpadMemory *>
                 (SimObject::find(strcat(&systemname[0], ".spm"))));
         }
         fatal_if((!pimSpms.size()), "Xbar : Cannot find SimObject pim_system spm");
+        fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
     }
 }
 
@@ -136,9 +136,20 @@ BaseXBar::getPort(const std::string &if_name, PortID idx)
 bool
 BaseXBar::pktFromPIM(PacketPtr pkt) const
 {
-    std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
-
-    return startswith(_masterName, _pimSystem->name()) ? true : false;
+    // std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+    // return startswith(_masterName, _pimSystem->name()) ? true : false;
+    std::string _masterName;
+    if (semodesystem::MemStackNum == 1) {
+        _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+        return startswith(_masterName, _pimSystem->name()) ? true : false;
+    } else if (semodesystem::MemStackNum > 1) {
+        for (int i=0; i<_pimSystems.size(); i++) {
+            _masterName = _pimSystems[i]->getRequestorName(pkt->requestorId());
+            if(startswith(_masterName, _pimSystems[i]->name()))
+                return true;
+        }
+    }
+    return false;
 }
 
 bool
@@ -148,15 +159,15 @@ BaseXBar::pktToPimSpm(PacketPtr pkt) const
     //     return true;
     // else
     //     return false;
-    if (semodesystem::MemStackNum == 1) {
-        if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
-            return true;
-    } else if (semodesystem::MemStackNum > 1) {
-        for (int i=0; i<pimSpms.size(); i++) {
-            if (pkt->getAddrRange().isSubset(pimSpms[i]->getAddrRange()))
-                return true;
-        }
-    }
+    // if (semodesystem::MemStackNum == 1) {
+    //     if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
+    //         return true;
+    // } else if (semodesystem::MemStackNum > 1) {
+    //     for (int i=0; i<pimSpms.size(); i++) {
+    //         if (pkt->getAddrRange().isSubset(pimSpms[i]->getAddrRange()))
+    //             return true;
+    //     }
+    // }
     return false;
 }
 
@@ -192,7 +203,7 @@ BaseXBar::calcPacketTiming(PacketPtr pkt, Tick header_delay)
                                            clockPeriod());
     }
 
-    if (ideal || pktFromPIM(pkt) || pktToPimSpm(pkt))
+    if (ideal || pktToPimSpm(pkt) || pktFromPIM(pkt))
         pkt->headerDelay = pkt->payloadDelay = 0;
 
     // the payload delay is not paying for the clock offset as that is

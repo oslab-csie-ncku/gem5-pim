@@ -326,6 +326,7 @@ class Bridge : public ClockedObject
     System *_pimSystem;
     memory::ScratchpadMemory *pimSpm;
     std::vector <memory::ScratchpadMemory *> pimSpms;
+    std::vector <System *> _pimSystems;
     bool pktFromPIM(PacketPtr pkt) const;
     bool pktToPimSpm(PacketPtr pkt) const;
 

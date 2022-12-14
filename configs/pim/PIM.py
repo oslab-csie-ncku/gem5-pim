@@ -74,7 +74,7 @@ def define_options(parser):
 ## PIM Related Class
 ##
 class PIMBus(NoncoherentXBar):
-    ideal = True
+    # ideal = True
 
     frontend_latency = params.BUS_FRONTEND_LATENCY_IDEAL
     forward_latency = params.BUS_FORWARD_LATENCY_IDEAL
@@ -85,7 +85,7 @@ class PIMBus(NoncoherentXBar):
     default = Self.badaddr_responder.pio
 
 class PIMBridge(Bridge):
-    ideal = True
+    # ideal = True
 
     req_size = params.BRIDGE_REQ_SIZE_IDEAL
     resp_size = params.BRIDGE_RESP_SIZE_IDEAL
@@ -252,17 +252,30 @@ def build_pim_system(options, stackId):
     self.spm.reg_flush_size = int(options.pim_spm_reg_flush_size, 16) + \
                         convert.toMemorySize(options.pim_spm_size) * stackId
 
+    # if(options.pim_stack_num > 1) :
+    #     pim_kernel = options.pim_kernel + str(stackId)
+    #     pim_se_output = options.pim_se_output + str(stackId)
+    #     pim_se_errout = options.pim_se_errout + str(stackId)
+    # else:
+    #     pim_kernel = options.pim_kernel
+    #     pim_se_output = options.pim_se_output
+    #     pim_se_errout = options.pim_se_errout
+
+    pim_kernel = options.pim_kernel + str(stackId)
+    pim_se_output = options.pim_se_output + str(stackId)
+    pim_se_errout = options.pim_se_errout + str(stackId) 
+    
     if options.pim_se:
-        process = Process(cmd = [options.pim_kernel])
+        process = Process(cmd = [pim_kernel])
         if options.pim_se_input != None:
             process.input = options.pim_se_input
         if options.pim_se_output != None:
-            process.output = options.pim_se_output
+            process.output =pim_se_output
         if options.pim_se_errout != None:
-            process.errout = options.pim_se_errout
+            process.errout = pim_se_errout
 
         self.cpu.workload = [process]
-        self.workload = SEWorkload.init_compatible(options.pim_kernel)
+        self.workload = SEWorkload.init_compatible(pim_kernel)
     return self
 
 def connect_to_host_system(options, sys, pim_sys, stackId):
@@ -280,10 +293,8 @@ def connect_to_host_system(options, sys, pim_sys, stackId):
 
     sys.memsubsystem[stackId].topimbridge = PIMBridge(ranges = [pim_sys.spm.range])
     pim_sys.tohostbridge = PIMBridge(ranges = sys.memsubsystem[stackId].bridge.ranges)
-
-    print("build_pim_mem_subsystem")
-    sys.memsubsystem[stackId].bridge.ranges.append(
-           AddrRange(options.pim_spm_start, size = (options.pim_spm_size)))
+    print(pim_sys.spm.range)
+    sys.memsubsystem[stackId].bridge.ranges.append(pim_sys.spm.range)
 
     sys.memsubsystem[stackId].xbar.mem_side_ports = sys.memsubsystem[stackId].topimbridge.cpu_side_port
     sys.memsubsystem[stackId].topimbridge.mem_side_port = pim_sys.pimbus.cpu_side_ports

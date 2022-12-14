@@ -108,17 +108,18 @@ MemCtrl::init()
     } else {
         port.sendRangeChange();
     }
-    // Get PIM system SimObject
-    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
 
     // Get PIM system SimObject
     if (semodesystem::MemStackNum == 1) {
         _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
         fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
     } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
-        _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-        fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
+        for (int i=0; i<semodesystem::MemStackNum; i++) {
+            std::string systemname = semodesystem::SEModeSystemsName[i];            
+            _pimSystems.push_back(dynamic_cast<System *>
+                (SimObject::find(&systemname[0])));
+        }
+        fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
     }
 }
 
@@ -141,18 +142,42 @@ MemCtrl::startup()
 bool
 MemCtrl::pktFromPIM(PacketPtr pkt) const
 {
-    std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+    // std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+    // return startswith(_masterName, _pimSystem->name()) ? true : false;
 
-    return startswith(_masterName, _pimSystem->name()) ? true : false;
+    std::string _masterName;
+    if (semodesystem::MemStackNum == 1) {
+        _masterName = _pimSystem->getRequestorName(pkt->requestorId());
+        return startswith(_masterName, _pimSystem->name()) ? true : false;
+    } else if (semodesystem::MemStackNum > 1) {
+        for (int i=0; i<_pimSystems.size(); i++) {
+            _masterName = _pimSystems[i]->getRequestorName(pkt->requestorId());
+            if(startswith(_masterName, _pimSystems[i]->name()))
+                return true;
+        }
+    }
+    return false;
 }
 
 bool
 MemCtrl::MEMPacketFromPIM(MemPacket *mem_pkt) const
 {
-    std::string _masterName =
-    _pimSystem->getRequestorName(mem_pkt->requestorId());
-    //std::cout << "masterName: " << _masterName << std::endl;
-    return startswith(_masterName, _pimSystem->name()) ? true : false;
+    // std::string _masterName =
+    // _pimSystem->getRequestorName(mem_pkt->requestorId());
+    // std::cout << "masterName: " << _masterName << std::endl;
+    // return startswith(_masterName, _pimSystem->name()) ? true : false;
+    std::string _masterName;
+    if (semodesystem::MemStackNum == 1) {
+        _masterName = _pimSystem->getRequestorName(mem_pkt->requestorId());
+        return startswith(_masterName, _pimSystem->name()) ? true : false;
+    } else if (semodesystem::MemStackNum > 1) {
+        for (int i=0; i<_pimSystems.size(); i++) {
+            _masterName = _pimSystems[i]->getRequestorName(mem_pkt->requestorId());
+            if(startswith(_masterName, _pimSystems[i]->name()))
+                return true;
+        }
+    }
+    return false;
 }
 
 Tick
@@ -163,6 +188,9 @@ MemCtrl::recvAtomic(PacketPtr pkt)
 
     panic_if(pkt->cacheResponding(), "Should not see packets where cache "
              "is responding");
+
+    panic_if(!(pkt->isRead() || pkt->isWrite()),
+             "Should only see read and writes at memory controller %#x %s\n", pkt->getAddr(), pkt->cmdString());
 
     Tick latency = 0;
     // do the actual memory access and turn the packet into a response
@@ -467,7 +495,7 @@ MemCtrl::recvTimingReq(PacketPtr pkt)
              "is responding");
 
     panic_if(!(pkt->isRead() || pkt->isWrite()),
-             "Should only see read and writes at memory controller\n");
+             "Should only see read and writes at memory controller %#x\n", pkt->getAddr());
 
     // Calc avg gap between requests
     if (prevArrival != 0) {
@@ -573,7 +601,6 @@ MemCtrl::processRespondEvent()
                        frontendLatency_pim + backendLatency_pim :
                        frontendLatency + backendLatency;
         latency += (mem_pkt->actReadyTime - curTick()) * bw_ratio;
-        //std::cout << _pimSystem->getRequestorName(mem_pkt->requestorId()) << ", actReady: " << mem_pkt->actReadyTime << ", curTick(): " 
         //<< curTick() << ", latency" << latency << std::endl;
         accessAndRespond(mem_pkt->pkt, latency);
     }
@@ -721,7 +748,8 @@ MemCtrl::accessAndRespond(PacketPtr pkt, Tick static_latency)
             response_latency *= bw_ratio;
 
         if (pktFromPIM(pkt) && (pkt->headerDelay || pkt->payloadDelay))
-            std::cout << this->name() << ": header or payload delay not 0!\n";
+            std::cout << this->name() << ": header or payload delay not 0!"
+                <<pkt->headerDelay<<" " << pkt->payloadDelay<< "\n";
 
         // response_time consumes the static latency and is charged also
         // with headerDelay that takes into account the delay provided by
