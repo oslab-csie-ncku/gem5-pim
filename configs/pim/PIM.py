@@ -269,8 +269,8 @@ def build_pim_system(options, stackId):
             pim_kernel_path += '-2'
         elif stackId == 3:
             pim_kernel_path += '-3'
-        process = Process(cmd = [options.pim_kernel])
-        print(options.pim_kernel)
+        #process = Process(cmd = [options.pim_kernel])
+        #print(options.pim_kernel)
         process = Process(cmd = [pim_kernel_path])
         print(pim_kernel_path)
         if options.pim_se_input != None:
