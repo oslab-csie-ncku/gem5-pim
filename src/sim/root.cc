@@ -59,8 +59,7 @@ Root *Root::_root = NULL;
 
 namespace semodesystem {
     std::string SEModeSystemName = "";
-    /* multistack PIM */
-    bool MultipleSESystem;
+    /* multistack pim */
     int MemStackNum = 0;
     std::vector<std::string> SEModeSystemsName;
 };
@@ -217,16 +216,17 @@ void
 Root::serialize(CheckpointOut &cp) const
 {
     SERIALIZE_SCALAR(FullSystem);
-    if (!semodesystem::MultipleSESystem) {
+    if (semodesystem::MemStackNum == 1) {
         SERIALIZE_SCALAR(semodesystem::SEModeSystemName);
-    } else {
+    }
+    else if (semodesystem::MemStackNum > 1) {
         /* multistack PIM */
+        /* GC TODO: serialize multiple se mode system */
         for (int i=0; i<semodesystem::MemStackNum; i++) {
             SERIALIZE_SCALAR(semodesystem::SEModeSystemsName[i]);
         }
         warn("use multistack PIM system : checkpoint serialize");
     }
-
     std::string isa = THE_ISA_STR;
     SERIALIZE_SCALAR(isa);
 
@@ -255,26 +255,26 @@ RootParams::create() const
 
     FullSystem = full_system;
     FullSystemInt = full_system ? 1 : 0;
-
-    if (FullSystem) {
-        semodesystem::MultipleSESystem = multiple_se_system;
-        semodesystem::MemStackNum = pim_stack_num;
-        if (!semodesystem::MultipleSESystem) {
-            semodesystem::SEModeSystemName = se_mode_system_name;
-        } else {
-            /* multistack PIM */
-            semodesystem::SEModeSystemName = se_mode_systems_name[0];
-            for (int i=0; i<pim_stack_num; i++) {
-                semodesystem::SEModeSystemsName.push_back(se_mode_systems_name[i]);
-            }
+    
+    // if (FullSystem) {
+    semodesystem::MemStackNum = pim_stack_num;
+    std::cout << semodesystem::MemStackNum << std::endl;
+    if (semodesystem::MemStackNum == 1) {
+        semodesystem::SEModeSystemName = se_mode_system_name;
+    } else if (semodesystem::MemStackNum > 1) {
+        /* multistack PIM */
+        semodesystem::SEModeSystemName = se_mode_systems_name[0];
+        for (int i=0; i<pim_stack_num; i++) {
+            semodesystem::SEModeSystemsName.push_back(se_mode_systems_name[i]);
         }
-    } else {
-        if (se_mode_system_name != "")
-            warn("Since the simulation is in pure SE mode, " \
-                 "se_mode_system_name variable will be ignored");
-        /* multistack PIM? */
-        /* GC TODO: check this branch */
     }
+    // } else {
+    //     if (se_mode_system_name != "")
+    //         warn("Since the simulation is in pure SE mode, " \
+    //              "se_mode_system_name variable will be ignored");
+    //     /* multistack PIM? */
+    //     /* GC TODO: check this branch */
+    // }
 
     return new Root(*this, 0);
 }

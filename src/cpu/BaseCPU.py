@@ -210,6 +210,7 @@ class BaseCPU(ClockedObject):
         self._cached_ports = ['icache.mem_side', 'dcache.mem_side']
         if buildEnv['TARGET_ISA'] in ['x86', 'arm', 'riscv']:
             if iwc and dwc:
+                print("iwc and dwc true")
                 self.itb_walker_cache = iwc
                 self.dtb_walker_cache = dwc
                 self.mmu.connectWalkerPorts(

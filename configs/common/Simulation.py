@@ -614,7 +614,6 @@ def run(options, root, testsys, cpu_class):
     if options.checkpoint_restore:
         cpt_starttick, checkpoint_dir = findCptDir(options, cptdir, testsys)
     root.apply_config(options.param)
-
     m5.instantiate(checkpoint_dir)
     '''
     # Old version of mapping, cannot exceed INT_MAX_VALUE
@@ -646,6 +645,14 @@ def run(options, root, testsys, cpu_class):
     '''
     if hasattr(options, "pim_se") and \
         options.pim_se and options.checkpoint_restore == None:
+        # Map pmem address range to host system :
+        # for i in range(np):
+        #     testsys.cpu[i].workload[0].map(
+        #             int(options.dram_nvm_start, 16),
+        #             int(options.dram_nvm_start, 16),
+        #             convert.toMemorySize(options.dram_nvm_size),
+        #             True)        
+        #for i in range(np):
         # Map SPM address range to SE PIM
         for pim_sys in root.pim_system:
             pim_sys.cpu.workload[0].map(

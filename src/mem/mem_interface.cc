@@ -37,7 +37,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 #include "mem/mem_interface.hh"
 
 #include "base/bitfield.hh"
@@ -470,6 +469,9 @@ DRAMInterface::prechargeBank(Rank& rank_ref, Bank& bank, Tick pre_tick,
 bool
 DRAMInterface::MEMPacketFromPIM(MemPacket *mem_pkt) const
 {
+    // std::string _masterName =
+    // _pimSystem->getRequestorName(mem_pkt->requestorId());
+    // return startswith(_masterName, _pimSystem->name()) ? true : false;
     std::string _masterName;
     if (semodesystem::MemStackNum == 1) {
         _masterName = _pimSystem->getRequestorName(mem_pkt->requestorId());
@@ -477,7 +479,7 @@ DRAMInterface::MEMPacketFromPIM(MemPacket *mem_pkt) const
     } else if (semodesystem::MemStackNum > 1) {
         for (int i=0; i<_pimSystems.size(); i++) {
             _masterName = _pimSystems[i]->getRequestorName(mem_pkt->requestorId());
-            if (startswith(_masterName, _pimSystems[i]->name()))
+            if(startswith(_masterName, _pimSystems[i]->name()))
                 return true;
         }
     }
@@ -929,20 +931,21 @@ DRAMInterface::init()
 {
     AbstractMemory::init();
     // Get PIM system SimObject
-    if (!semodesystem::MultipleSESystem) {
+    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
+    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+
+    // Get PIM system SimObject
+    if (semodesystem::MemStackNum == 1) {
         _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
         fatal_if(!_pimSystem, "MemCtrl : Cannot find SimObject pim_system");
     } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
         for (int i=0; i<semodesystem::MemStackNum; i++) {
-            std::string systemname = semodesystem::SEModeSystemsName[i];
+            std::string systemname = semodesystem::SEModeSystemsName[i];            
             _pimSystems.push_back(dynamic_cast<System *>
                 (SimObject::find(&systemname[0])));
         }
         fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
     }
-    fatal_if(!_pimSystem, "memInterface : Cannot find SimObject pim_system");
-    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
     // a bit of sanity checks on the interleaving, save it for here to
     // ensure that the system pointer is initialised
     if (range.interleaved()) {

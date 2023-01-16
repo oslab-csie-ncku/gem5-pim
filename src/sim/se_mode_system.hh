@@ -15,8 +15,7 @@ namespace semodesystem
 {
 
 extern std::string SEModeSystemName;
-/* multistack PIM */
-extern bool MultipleSESystem;
+/* multistack pim */
 extern int MemStackNum;
 extern std::vector<std::string> SEModeSystemsName;
 /**

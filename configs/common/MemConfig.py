@@ -105,7 +105,6 @@ def create_mem_intf(intf, r, i, intlv_bits, intlv_size,
 def config_mem(options, system):
     """
     Create the memory controllers based on the options and attach them.
-
     If requested, we make a multi-channel configuration of the
     selected memory controller class by creating multiple instances of
     the specific class. The individual controllers have their
@@ -869,7 +868,6 @@ def config_sepim_mem(options, system):
     opt_dram_nvm_type = options.dram_nvm_type
     opt_dram_nvm_start = int(options.dram_nvm_start, 16)
     opt_dram_nvm_size = str(options.dram_nvm_size)
-
     from m5.util import convert
 
     dram_nvm_end = opt_dram_nvm_start + \
@@ -908,7 +906,6 @@ def config_sepim_mem(options, system):
     intlv_bits = int(math.log(nbr_mem_ctrls, 2))
     if 2 ** intlv_bits != nbr_mem_ctrls:
         fatal("Number of memory channels must be a power of 2")
-
     if opt_mem_type:
         intf = ObjectList.mem_list.get(opt_mem_type)
         dn_intf = ObjectList.mem_list.get(opt_dram_nvm_type)
@@ -1033,10 +1030,12 @@ def config_sepim_mem(options, system):
             # Connect the controllers to the membus
             mem_ctrls[i].port = xbar.mem_side_ports
 
-    for mc in mem_ctrls:
-        print(mc.dram.range)
+    # for mc in mem_ctrls:
+    #     print(mc.dram.range)
+
     for i in range(options.pim_stack_num):
         subsystem[i].mem_ctrls = mem_ctrls[i]
+        print(mem_ctrls[i].dram.range)
         subsystem[i].bridge.ranges = mem_ctrls[i].dram.range
 
     dram_ctrls_num = len(mem_ctrls) - options.pim_stack_num

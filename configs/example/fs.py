@@ -385,9 +385,9 @@ if args.pim_baremetal:
 
 if args.pim_se:
     root.pim_stack_num = pim_stack_num
-    root.multiple_se_system = True if int(root.pim_stack_num) > 1 else False
+    # root.multiple_se_system = True if int(root.pim_stack_num) > 1 else False
 
-    if not root.multiple_se_system:
+    if root.pim_stack_num == 1:
         root.pim_system = PIM.build_pim_system(args, 0)
         PIM.connect_to_host_system(args, test_sys, root.pim_system, 0)
         root.se_mode_system_name = root.pim_system.get_name()

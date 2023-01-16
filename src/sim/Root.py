@@ -68,22 +68,21 @@ class Root(SimObject):
     sim_quantum = Param.Tick(0, "simulation quantum")
 
     full_system = Param.Bool("if this is a full system simulation")
-
+    # multistack pim TODO: se_mode_system_name should be vector
     se_mode_system_name = Param.String("",
                                        "In full system simulation, if you " \
                                        "want to have a SE mode system at " \
                                        "the same time, you need to specify " \
                                        "the SE mode system name")
     # multistack PIM
-    multiple_se_system = Param.Bool(False,
-                                    "if there are multiple se mode systems")
     pim_stack_num = Param.Int(0, "Number of PIM memory stacks")
+    # multiple_se_system = Param.Bool(False,
+    #                                "if there are multiple se mode systems")
     se_mode_systems_name = VectorParam.String([],
                                     "In full system simulation, if you " \
                                     "want to have multiple SE mode systems " \
                                     "at the same time, you need to specify " \
                                     "the name of SE mode systems")
-
     # Time syncing prevents the simulation from running faster than real time.
     time_sync_enable = Param.Bool(False, "whether time syncing is enabled")
     time_sync_period = Param.Clock("100ms", "how often to sync with real time")

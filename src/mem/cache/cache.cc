@@ -1453,34 +1453,34 @@ Cache::flushCacheRange(const Addr addr, const uint32_t size)
             DPRINTF(CacheFlushRange, "flushing block (%s | isSecure: %c)\n",
                                      blk->print(),
                                      blk->isSecure() ? 'Y' : 'N');
+            evictBlock(blk);
+//             RequestPtr req = std::make_shared<Request>(addr_blkAlign,
+//                                                        blkSize, 0,
+//                                                        Request::wbRequestorId);
+//             if (blk->isSecure())
+//                 req->setFlags(Request::SECURE);
+//             req->taskId(blk->getTaskId());
 
-            RequestPtr req = std::make_shared<Request>(addr_blkAlign,
-                                                       blkSize, 0,
-                                                       Request::wbRequestorId);
-            if (blk->isSecure())
-                req->setFlags(Request::SECURE);
-            req->taskId(blk->getTaskId());
+//             PacketPtr pkt =
+//                 new Packet(req, MemCmd::WriteReq);
+// //                new Packet(req, blk->isDirty() ? MemCmd::WritebackDirty :
+// //                                                 MemCmd::WritebackClean);
 
-            PacketPtr pkt =
-                new Packet(req, MemCmd::WriteReq);
-//                new Packet(req, blk->isDirty() ? MemCmd::WritebackDirty :
-//                                                 MemCmd::WritebackClean);
+//             if (blk->isSet(CacheBlk::WritableBit))
+//                 blk->clearCoherenceBits(CacheBlk::WritableBit);
+//             else
+//                 pkt->setHasSharers();
 
-            if (blk->isSet(CacheBlk::WritableBit))
-                blk->clearCoherenceBits(CacheBlk::WritableBit);
-            else
-                pkt->setHasSharers();
+//             blk->clearCoherenceBits(CacheBlk::DirtyBit);
 
-            blk->clearCoherenceBits(CacheBlk::DirtyBit);
+//             pkt->allocate();
+//             pkt->setDataFromBlock(blk->data, blkSize);
 
-            pkt->allocate();
-            pkt->setDataFromBlock(blk->data, blkSize);
+//             invalidateBlock(blk);
 
-            invalidateBlock(blk);
+//             memSidePort.sendFunctional(pkt);
 
-            memSidePort.sendFunctional(pkt);
-
-            delete pkt;
+//             delete pkt;
 
         }
 

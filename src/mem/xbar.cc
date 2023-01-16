@@ -90,19 +90,20 @@ BaseXBar::~BaseXBar()
 void
 BaseXBar::init()
 {
-    // Get PIM system SimObject
-    if (!semodesystem::MultipleSESystem) {
+
+    if (semodesystem::MemStackNum == 1) {
+        // Get PIM system SimObject
         _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
-        fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
+        fatal_if(!_pimSystem, "Xbar : Cannot find SimObject pim_system");
 
         // Get PIM SPM
         pimSpm = dynamic_cast<memory::ScratchpadMemory *>
                 (SimObject::find("pim_system.spm"));
         fatal_if(!pimSpm, "Xbar : Cannot find SimObject pim_system.spm");
-    } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
+    } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */        
         for (int i=0; i<semodesystem::MemStackNum; i++) {
             std::string systemname = semodesystem::SEModeSystemsName[i];
-            // Get PIM system SimObject
+            // Get PIM system SimObject          
             _pimSystems.push_back(dynamic_cast<System *>
                 (SimObject::find(&systemname[0])));
             // Get PIM SPM
@@ -111,15 +112,7 @@ BaseXBar::init()
         }
         fatal_if((!pimSpms.size()), "Xbar : Cannot find SimObject pim_system spm");
         fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
-
     }
-    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
-
-    // // Get PIM SPM
-    // pimSpm = dynamic_cast<memory::ScratchpadMemory *>
-    //          (SimObject::find("pim_system0.spm"));
-    // fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
 }
 
 
@@ -152,7 +145,7 @@ BaseXBar::pktFromPIM(PacketPtr pkt) const
     } else if (semodesystem::MemStackNum > 1) {
         for (int i=0; i<_pimSystems.size(); i++) {
             _masterName = _pimSystems[i]->getRequestorName(pkt->requestorId());
-            if (startswith(_masterName, _pimSystems[i]->name()))
+            if(startswith(_masterName, _pimSystems[i]->name()))
                 return true;
         }
     }

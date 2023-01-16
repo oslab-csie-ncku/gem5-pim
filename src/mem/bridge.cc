@@ -114,8 +114,8 @@ Bridge::init()
     // notify the request side  of our address ranges
     cpuSidePort.sendRangeChange();
 
-    // Get PIM system SimObject
-    if (!semodesystem::MultipleSESystem) {
+    if (semodesystem::MemStackNum == 1) {
+        // Get PIM system SimObject
         _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system"));
         fatal_if(!_pimSystem, "Bridge : Cannot find SimObject pim_system");
 
@@ -125,8 +125,8 @@ Bridge::init()
         fatal_if(!pimSpm, "Bridge : Cannot find SimObject pim_system.spm");
     } else if (semodesystem::MemStackNum > 1) { /* multistack PIM */
         for (int i=0; i<semodesystem::MemStackNum; i++) {
-            std::string systemname = semodesystem::SEModeSystemsName[i];
-            // Get PIM system SimObject
+            std::string systemname = semodesystem::SEModeSystemsName[i];  
+            // Get PIM system SimObject          
             _pimSystems.push_back(dynamic_cast<System *>
                 (SimObject::find(&systemname[0])));
             // Get PIM SPM
@@ -136,13 +136,6 @@ Bridge::init()
         fatal_if((!pimSpms.size()), "Bridge : Cannot find SimObject pim_system spm");
         fatal_if((!_pimSystems.size()), "Bridge : Cannot find SimObject pim_system");
     }
-
-    // _pimSystem = dynamic_cast<System *>(SimObject::find("pim_system0"));
-    // fatal_if(!_pimSystem, "Cannot find SimObject pim_system");
-
-    // pimSpm = dynamic_cast<memory::ScratchpadMemory *>
-    //          (SimObject::find("pim_system0.spm"));
-    // fatal_if(!pimSpm, "Cannot find SimObject pim_system.spm");
 }
 
 bool
@@ -155,27 +148,20 @@ Bridge::pktFromPIM(PacketPtr pkt) const
     } else if (semodesystem::MemStackNum > 1) {
         for (int i=0; i<_pimSystems.size(); i++) {
             _masterName = _pimSystems[i]->getRequestorName(pkt->requestorId());
-            if (startswith(_masterName, _pimSystems[i]->name()))
+            if(startswith(_masterName, _pimSystems[i]->name()))
                 return true;
         }
     }
-    // std::string _masterName = _pimSystem->getRequestorName(pkt->requestorId());
-    // return startswith(_masterName, _pimSystem->name()) ? true : false;
     return false;
 }
 
 bool
 Bridge::pktToPimSpm(PacketPtr pkt) const
 {
-    // if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
-    //     return true;
-    // else
-    //     return false;
-    if (!semodesystem::MultipleSESystem) {
+    if (semodesystem::MemStackNum == 1) {
         if (pkt->getAddrRange().isSubset(pimSpm->getAddrRange()))
             return true;
-    } else {
-        /* multistack PIM */
+    } else if (semodesystem::MemStackNum > 1) {
         for (int i=0; i<pimSpms.size(); i++) {
             if (pkt->getAddrRange().isSubset(pimSpms[i]->getAddrRange()))
                 return true;
@@ -368,8 +354,9 @@ Bridge::BridgeRequestPort::trySendTiming()
         if (!transmitList.empty()) {
             DeferredPacket next_req = transmitList.front();
             DPRINTF(Bridge, "Scheduling next send\n");
-            bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(next_req.pkt)
-                            || bridge.pktToPimSpm(next_req.pkt) ? next_req.tick :
+            // printf("bridge.clockEdge() : %ld curTick:%ld\n", bridge.clockEdge(), curTick());
+            bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(pkt)
+                            || bridge.pktToPimSpm(pkt) ? curTick() :
                             std::max(next_req.tick, bridge.clockEdge()));
         }
 

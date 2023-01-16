@@ -77,7 +77,7 @@ def define_options(parser):
 ## PIM Related Class
 ##
 class PIMBus(NoncoherentXBar):
-    ideal = True
+    # ideal = True
 
     frontend_latency = params.BUS_FRONTEND_LATENCY_IDEAL
     forward_latency = params.BUS_FORWARD_LATENCY_IDEAL
@@ -88,7 +88,7 @@ class PIMBus(NoncoherentXBar):
     default = Self.badaddr_responder.pio
 
 class PIMBridge(Bridge):
-    ideal = True
+    # ideal = True
 
     req_size = params.BRIDGE_REQ_SIZE_IDEAL
     resp_size = params.BRIDGE_RESP_SIZE_IDEAL
@@ -181,8 +181,7 @@ def build_pim_system(options, stackId):
         self = PIMSESystem()
         # multistack pim
         se_mem_start = int(options.pim_se_mem_start, 16) + \
-                            convert.toMemorySize(options.pim_se_mem_size) * \
-                            stackId
+                        convert.toMemorySize(options.pim_se_mem_size) * stackId
         print("se_mem_start:" + str(se_mem_start))
         if se_mem_start is None:
             fatal("SE memory start address is not set")
