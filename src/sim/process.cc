@@ -288,7 +288,7 @@ Process::initState()
 {
     if (contextIds.empty())
         fatal("Process %s is not associated with any HW contexts!\n", name());
-
+    
     // first thread context for this process... initialize & enable
     ThreadContext *tc = system->threads[contextIds[0]];
 
