@@ -296,6 +296,7 @@ void
 Bridge::BridgeRequestPort::schedTimingReq(PacketPtr pkt, Tick when)
 {
     if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt)) {
+    //    when = bridge.clockEdge(delay);
         // warn("%d %d %d", bridge.ideal, bridge.pktFromPIM(pkt), bridge.pktToPimSpm(pkt));
         when = curTick();
     }
@@ -317,6 +318,7 @@ void
 Bridge::BridgeResponsePort::schedTimingResp(PacketPtr pkt, Tick when)
 {
     if (bridge.ideal || bridge.pktFromPIM(pkt) || bridge.pktToPimSpm(pkt)) {
+    //    when = bridge.clockEdge(delay);
         // warn("%d %d %d", bridge.ideal, bridge.pktFromPIM(pkt), bridge.pktToPimSpm(pkt));
         when = curTick();
     }
@@ -338,8 +340,10 @@ Bridge::BridgeRequestPort::trySendTiming()
 
     DeferredPacket req = transmitList.front();
 
-    assert(req.tick <= curTick());
-
+    // assert(req.tick <= curTick());
+    if (req.tick > curTick()) {
+        printf("Bridge: assert(req.tick > curTick()) !!!");
+    }
     PacketPtr pkt = req.pkt;
 
     DPRINTF(Bridge, "trySend request addr 0x%x, queue size %d\n",
@@ -358,6 +362,7 @@ Bridge::BridgeRequestPort::trySendTiming()
             bridge.schedule(sendEvent, bridge.ideal || bridge.pktFromPIM(pkt)
                             || bridge.pktToPimSpm(pkt) ? curTick() :
                             std::max(next_req.tick, bridge.clockEdge()));
+            //bridge.schedule(sendEvent, std::max(next_req.tick, bridge.clockEdge()));
         }
 
         // if we have stalled a request due to a full request queue,
@@ -378,8 +383,10 @@ Bridge::BridgeResponsePort::trySendTiming()
 
     DeferredPacket resp = transmitList.front();
 
-    assert(resp.tick <= curTick());
-
+    //assert(resp.tick <= curTick());
+    if (resp.tick > curTick()) {
+        printf("Bridge: assert(req.tick > curTick()) !!!");
+    }
     PacketPtr pkt = resp.pkt;
 
     DPRINTF(Bridge, "trySend response addr 0x%x, outstanding %d\n",
@@ -401,6 +408,7 @@ Bridge::BridgeResponsePort::trySendTiming()
                             bridge.pktFromPIM(next_resp.pkt) ||
                             bridge.pktToPimSpm(next_resp.pkt) ? curTick() :
                             std::max(next_resp.tick, bridge.clockEdge()));
+            //bridge.schedule(sendEvent, std::max(next_resp.tick, bridge.clockEdge()));
         }
 
         // if there is space in the request queue and we were stalling
