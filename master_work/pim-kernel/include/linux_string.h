@@ -26,4 +26,26 @@ static inline void memcpy_v(volatile void *p, volatile const void *q,
     }
 }
 
+static inline void memset_v(volatile void *p, int q, unsigned long size)
+{
+    for (;;) {
+        if (size < sizeof(unsigned long))
+            break;
+
+        *(volatile unsigned long *)p = q;
+        p += sizeof(unsigned long);
+        size -= sizeof(unsigned long);
+        if (!size)
+            return;
+    }
+
+    for (;;) {
+        *(volatile unsigned char *)p = q;
+        p += sizeof(unsigned char);
+        size -= sizeof(unsigned char);
+        if (!size)
+            return;
+    }
+}
+
 #endif /* __LINUX_STRING_H__ */

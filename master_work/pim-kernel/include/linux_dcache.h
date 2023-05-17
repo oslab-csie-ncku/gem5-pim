@@ -8,8 +8,13 @@
 #define bytemask_from_count(cnt) (~(~0ul << (cnt)*8))
 
 struct qstr
-{
-    uint64_t hash_len;
+{	union {
+		struct {
+			uint32_t len;
+            uint32_t hash;
+		};
+		uint64_t hash_len;
+	};
     const unsigned char *name;
 };
 
