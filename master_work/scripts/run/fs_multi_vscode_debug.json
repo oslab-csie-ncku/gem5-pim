@@ -1,0 +1,74 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "(gdb) Launch",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/X86/gem5.debug",
+            "args": [
+                "--outdir=pim_m5out",
+                //"--debug-flags=Bridge,ScratchpadMemory,PseudoInst,Drain,MemCtrl,DRAM,DRAMState,QOS,PacketQueue",
+                "./configs/example/fs_pim.py",
+                "--num-cpus=1",
+                "--cpu-type=AtomicSimpleCPU",
+                "--cpu-clock=2GHz",
+                "--caches",
+                "--l2cache",
+                "--l1i_size=32kB",
+                "--l1d_size=32kB",
+                "--l2_size=1MB",
+                "--mem-type=DDR4_2400_8x8",
+                "--mem-channels=1",
+                "--mem-size=16GB",
+                "--dram-nvm",
+                "--dram-nvm-type=PCM_LPDDR2_400_8x8",
+                "--dram-nvm-start=0x240000000",
+                "--dram-nvm-size=8GB",
+                "--pim-stack-num=4"
+                "--pim-se",
+                "--pim-cpu-clock=1.5GHz",
+                "--pim-bandwidth-ratio=8",
+                "--pim-spm-start=0x450000000",
+                "--pim-spm-size=8kB",
+                "--pim-spm-reg-flush-addr=0x450000000",
+                "--pim-spm-reg-flush-size=0x450000008",
+                "--pim-se-mem-start=0x440000000",
+                "--pim-se-mem-size=10MB",
+                "--pim-kernel=./master_work/pim-kernel/pim-kernel",
+                "--pim-se-input=''",
+                "--pim-se-output=pim-stdout",
+                "--pim-se-errout=pim-errout",
+                //"--checkpoint-restore=1",
+                //"--restore-with-cpu=AtomicSimpleCPU",
+                "--script=./master_work/workloads/metadata/",
+                "--kernel=x86_64-vmlinux-4.18.0-nova-pohao",
+                "--command-line=earlyprintk=ttyS0 console=ttyS0 lpj=7999923 root=/dev/hda1 dhash_entries=16 nokaslr norandmaps memmap=8G!9G",
+                "--disk-image=/home/johnnylabubuntu/work/gem5_disk/new_vmlinux/x86-ubuntu-14.04.6.img"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [{
+                "name": "M5_PATH",
+                "value": "./master_work/gem5_images/x86-system"
+            }],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                },
+                {
+                    "description": "Set Disassembly Flavor to Intel",
+                    "text": "-gdb-set disassembly-flavor intel",
+                    "ignoreFailures": true
+                }
+            ]
+        }
+    ]
+}
