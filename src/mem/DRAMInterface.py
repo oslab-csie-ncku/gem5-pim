@@ -1521,7 +1521,7 @@ class PCM_LPDDR2_400_8x8(DRAMInterface):
     tXS = '7.5ns'
 
     # tWP = tWP00
-    tWP = '100ns'
+    tWP = '150ns'
     #tWP00 = '100ns'
     #tWP01 = '1050ns'
     #tWP10 = '750ns'

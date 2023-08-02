@@ -11,7 +11,7 @@ class ScratchpadMemory(SimpleMemory):
     ## SPM bandwidth is equal to L1 cache bandwidth, which is based on:
     ## [1] Wiki - Memory hierarchy
     ##     (https://en.wikipedia.org/wiki/Memory_hierarchy)
-    latency = Param.Latency('0.12ns', "SPM latency is equal to 2 cycles")
+    latency = Param.Latency('1.2ns', "SPM latency is equal to 2 cycles")
     bandwidth = Param.MemoryBandwidth('700GiB/s',
                                       """SPM bandwidth is equal to
                                       L1 cache bandwidth""")
