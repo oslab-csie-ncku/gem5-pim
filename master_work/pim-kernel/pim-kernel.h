@@ -18,6 +18,8 @@ enum command_type
     COMMAND_NOP,
     COMMAND_NOVA_SEARCH_RBTREE,
     COMMAND_NOVA_DL_LOOKUP,
+    COMMAND_NOVA_FILE_R,
+    COMMAND_NOVA_FILE_W,
     COMMAND_DONE,
 };
 
@@ -53,4 +55,18 @@ void kernel_nova_search_rbtree(volatile uint8_t cmd_index);
  */
 void kernel_dl_lookup_and_check(volatile uint8_t cmd_index);
 
+void kernel_nova_file_r(volatile uint8_t cmd_index);
+
+/**
+ * Input:
+ *     REG 0: page global directory (PGD) entry value
+ *     REG 1: destination physical address (kernel space)
+ *     REG 2: source virtual address (user space)
+ *     REG 3: size
+ * Output:
+ *     None
+ *
+ * Assume the page table has been pinned into memory
+ */
+void kernel_nova_file_w(volatile uint8_t cmd_index);
 #endif /* __PIM_KERNEL_H__ */

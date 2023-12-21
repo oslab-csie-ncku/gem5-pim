@@ -32,7 +32,6 @@ void kernel_nova_search_rbtree(volatile uint8_t cmd_index)
     volatile struct rb_node *_node = (struct rb_node *)REG_0(cmd_index);
     const uint64_t hash_key = REG_1(cmd_index);
     volatile struct nova_range_node *curr = NULL;
-
     for (;
         _node && ({_node = (struct rb_node *)virt_to_phys(_node);
                     curr = container_of(_node, struct nova_range_node, node);
@@ -121,19 +120,41 @@ void kernel_dl_lookup_and_check(volatile uint8_t cmd_index)
             REG_0(cmd_index) = dl_entry->ino;
     }
 }
+void kernel_nova_file_r(volatile uint8_t cmd_index)
+{
 
+    uint64_t src_addr = REG_0(cmd_index);
+    uint64_t dst_addr = REG_1(cmd_index);
+    uint64_t size = REG_2(cmd_index);
+
+    clflush(dst_addr, size);
+    memcpy_v((void *)dst_addr, (void *)src_addr, size);
+
+}
+
+void kernel_nova_file_w(volatile uint8_t cmd_index)
+{
+    uint64_t src_addr = REG_0(cmd_index);
+    uint64_t dst_addr = REG_1(cmd_index);
+    uint64_t size = REG_2(cmd_index);
+
+    clflush(dst_addr, size);
+    memcpy_v((void *)dst_addr, (void *)src_addr, size);
+
+}
 int pim_start()
 {
     init_reg();
     volatile uint8_t cmd_index = 0;
     // Waiting for initialization info from OS
     while (REG_FIRST_CMD == COMMAND_UNINIT);
-
+    // uint64_t cur_subjob_count=1;
+    // uint64_t subjob_NUM=1;
     // Start working
     while (1) {
         const uint8_t cmd = REG_CMD(cmd_index);
 
-        if (cmd >= COMMAND_NOVA_SEARCH_RBTREE && cmd <= COMMAND_NOVA_DL_LOOKUP) {
+        if (cmd >= COMMAND_NOVA_SEARCH_RBTREE && cmd <= COMMAND_NOVA_FILE_W) {
             switch (cmd) {
             case COMMAND_NOVA_SEARCH_RBTREE:
                 kernel_nova_search_rbtree(cmd_index);
@@ -145,6 +166,23 @@ int pim_start()
                 break;
             case COMMAND_NOVA_DL_LOOKUP:
                 kernel_dl_lookup_and_check(cmd_index);
+                REG_FIRST_CMD = COMMAND_DONE;
+                REG_CMD(cmd_index) = COMMAND_DONE;
+                if (cmd_index == MAX_JOB_NUM)
+                    cmd_index = 0;
+                else
+                    cmd_index++;
+                break;
+            case COMMAND_NOVA_FILE_R:
+                  kernel_nova_file_r(cmd_index);
+                  REG_CMD(cmd_index) = COMMAND_DONE;
+                  if (cmd_index == MAX_JOB_NUM)
+                    cmd_index = 0;
+                else
+                    cmd_index++;
+                break;
+            case COMMAND_NOVA_FILE_W:
+                kernel_nova_file_w(cmd_index);
                 REG_FIRST_CMD = COMMAND_DONE;
                 REG_CMD(cmd_index) = COMMAND_DONE;
                 if (cmd_index == MAX_JOB_NUM)

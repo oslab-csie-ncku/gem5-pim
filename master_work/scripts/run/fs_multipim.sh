@@ -3,7 +3,7 @@
 #	Build gem5, user can type
 # History:
 # 2021/11/26    johnnycck   First release
-source ./master_work/scripts/run/compile_gem5.sh
+# source ./master_work/scripts/run/compile_gem5.sh
 
 if [ -z "$1" ]; then
 echo "Error: Missing $1, please fill in baseline or dlfs"
