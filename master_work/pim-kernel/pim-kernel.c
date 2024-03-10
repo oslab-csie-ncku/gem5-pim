@@ -126,10 +126,8 @@ void kernel_nova_file_r(volatile uint8_t cmd_index)
     uint64_t src_addr = REG_0(cmd_index);
     uint64_t dst_addr = REG_1(cmd_index);
     uint64_t size = REG_2(cmd_index);
-
     clflush(dst_addr, size);
     memcpy_v((void *)dst_addr, (void *)src_addr, size);
-
 }
 
 void kernel_nova_file_w(volatile uint8_t cmd_index)
@@ -137,10 +135,9 @@ void kernel_nova_file_w(volatile uint8_t cmd_index)
     uint64_t src_addr = REG_0(cmd_index);
     uint64_t dst_addr = REG_1(cmd_index);
     uint64_t size = REG_2(cmd_index);
-
+    // clflush(src_phys_addr,round_size);
     clflush(dst_addr, size);
     memcpy_v((void *)dst_addr, (void *)src_addr, size);
-
 }
 int pim_start()
 {
@@ -183,7 +180,6 @@ int pim_start()
                 break;
             case COMMAND_NOVA_FILE_W:
                 kernel_nova_file_w(cmd_index);
-                REG_FIRST_CMD = COMMAND_DONE;
                 REG_CMD(cmd_index) = COMMAND_DONE;
                 if (cmd_index == MAX_JOB_NUM)
                     cmd_index = 0;
