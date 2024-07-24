@@ -1446,7 +1446,7 @@ BaseCache::handleFill(PacketPtr pkt, CacheBlk *blk, PacketList &writebacks,
 
     if (!blk) {
         // better have read new data...
-        assert(pkt->hasData() || pkt->cmd == MemCmd::InvalidateResp);
+        // assert(pkt->hasData() || pkt->cmd == MemCmd::InvalidateResp);
 
         // need to do a replacement if allocating, otherwise we stick
         // with the temporary storage

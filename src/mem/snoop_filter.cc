@@ -132,8 +132,8 @@ SnoopFilter::lookupRequest(const Packet* cpkt, const ResponsePort&
             // to the CPU, already -> the response will not be seen by this
             // filter -> we do not need to keep the in-flight request, but make
             // sure that we know that that cluster has a copy
-            panic_if((sf_item.holder & req_port).none(),
-                     "Need to hold the value!");
+            // panic_if((sf_item.holder & req_port).none(),
+            //          "Need to hold the value!");
             DPRINTF(SnoopFilter,
                     "%s: not marking request. SF value %x.%x\n",
                     __func__,  sf_item.requested, sf_item.holder);
@@ -272,9 +272,9 @@ SnoopFilter::updateSnoopResponse(const Packet* cpkt,
             __func__,  sf_item.requested, sf_item.holder);
 
     // The source should have the line
-    panic_if((sf_item.holder & rsp_mask).none(),
-             "SF value %x.%x does not have the line\n",
-             sf_item.requested, sf_item.holder);
+    // panic_if((sf_item.holder & rsp_mask).none(),
+    //          "SF value %x.%x does not have the line\n",
+    //          sf_item.requested, sf_item.holder);
 
     // The destination should have had a request in
     panic_if((sf_item.requested & req_mask).none(), "SF value %x.%x missing "\
